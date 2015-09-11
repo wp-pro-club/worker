@@ -46,6 +46,10 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Changelog ==
 
+= 4.1.13 =
+
+- Add translation domain for WordPress plugin repository.
+
 = 4.1.12 =
 
 - Fix: Improve support for non UTF8 encoded file names for [incremental backups](https://managewp.com/managewp-orion-developer-diary-3-bulletproof-backup-solution)

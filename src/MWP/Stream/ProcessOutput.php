@@ -58,7 +58,7 @@ class MWP_Stream_ProcessOutput extends MWP_Stream_Callable
             }
 
             // The stream will be read again because we're returning a string.
-            return (string) $output;
+            return (string)$output;
         } else {
             if (!$this->process->isSuccessful()) {
                 throw new Symfony_Process_Exception_ProcessFailedException($this->process);
@@ -69,7 +69,7 @@ class MWP_Stream_ProcessOutput extends MWP_Stream_Callable
 
             // The process has finished and is successful. This part will probably get run twice,
             // first time we'll return final output, second time we'll return 'false' and break the loop.
-            return empty($output) ? false : $output;
+            return strlen($output) ? $output : false;
         }
     }
 }
