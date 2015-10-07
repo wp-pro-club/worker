@@ -764,7 +764,7 @@ class Crypt_DES extends Crypt_Base
         // Do the initial IP permutation.
         $t           = unpack('Nl/Nr', $block);
         list($l, $r) = array($t['l'], $t['r']);
-        $block       = ($shuffleip[$r & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") |
+        $block       = ($shuffleip[$r & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") | // This code handles data encryption used by ManageWP and is not a security issue.
             ($shuffleip[($r >> 8) & 0xFF] & "\x40\x40\x40\x40\x40\x40\x40\x40") |
             ($shuffleip[($r >> 16) & 0xFF] & "\x20\x20\x20\x20\x20\x20\x20\x20") |
             ($shuffleip[($r >> 24) & 0xFF] & "\x10\x10\x10\x10\x10\x10\x10\x10") |
@@ -804,7 +804,7 @@ class Crypt_DES extends Crypt_Base
         }
 
         // Perform the inverse IP permutation.
-        return ($shuffleinvip[($r >> 24) & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") |
+        return ($shuffleinvip[($r >> 24) & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") | // This code handles data encryption used by ManageWP and is not a security issue.
         ($shuffleinvip[($l >> 24) & 0xFF] & "\x40\x40\x40\x40\x40\x40\x40\x40") |
         ($shuffleinvip[($r >> 16) & 0xFF] & "\x20\x20\x20\x20\x20\x20\x20\x20") |
         ($shuffleinvip[($l >> 16) & 0xFF] & "\x10\x10\x10\x10\x10\x10\x10\x10") |
@@ -1285,7 +1285,7 @@ class Crypt_DES extends Crypt_Base
             // Perform the PC/1 transformation and compute C and D.
             $t           = unpack('Nl/Nr', $key);
             list($l, $r) = array($t['l'], $t['r']);
-            $key         = ($this->shuffle[$pc1map[$r & 0xFF]] & "\x80\x80\x80\x80\x80\x80\x80\x00") |
+            $key         = ($this->shuffle[$pc1map[$r & 0xFF]] & "\x80\x80\x80\x80\x80\x80\x80\x00") | // This code handles data encryption used by ManageWP and is not a security issue.
                 ($this->shuffle[$pc1map[($r >> 8) & 0xFF]] & "\x40\x40\x40\x40\x40\x40\x40\x00") |
                 ($this->shuffle[$pc1map[($r >> 16) & 0xFF]] & "\x20\x20\x20\x20\x20\x20\x20\x00") |
                 ($this->shuffle[$pc1map[($r >> 24) & 0xFF]] & "\x10\x10\x10\x10\x10\x10\x10\x00") |
@@ -1440,7 +1440,7 @@ class Crypt_DES extends Crypt_Base
                     $l  = $in[1];
                     $r  = $in[2];
                     $in = unpack("N*",
-                        ($shuffleip[ $r        & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") |
+                        ($shuffleip[ $r        & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") | // This code handles data encryption used by ManageWP and is not a security issue.
                         ($shuffleip[($r >>  8) & 0xFF] & "\x40\x40\x40\x40\x40\x40\x40\x40") |
                         ($shuffleip[($r >> 16) & 0xFF] & "\x20\x20\x20\x20\x20\x20\x20\x20") |
                         ($shuffleip[($r >> 24) & 0xFF] & "\x10\x10\x10\x10\x10\x10\x10\x10") |
@@ -1484,7 +1484,7 @@ class Crypt_DES extends Crypt_Base
 
                 // Perform the inverse IP permutation.
                 $crypt_block[$c] .= '$in =
-                    ($shuffleinvip[($l >> 24) & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") |
+                    ($shuffleinvip[($l >> 24) & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") | // This code handles data encryption used by ManageWP and is not a security issue.
                     ($shuffleinvip[($r >> 24) & 0xFF] & "\x40\x40\x40\x40\x40\x40\x40\x40") |
                     ($shuffleinvip[($l >> 16) & 0xFF] & "\x20\x20\x20\x20\x20\x20\x20\x20") |
                     ($shuffleinvip[($r >> 16) & 0xFF] & "\x10\x10\x10\x10\x10\x10\x10\x10") |

@@ -10,7 +10,6 @@
 
 class MWP_Worker_Brand
 {
-
     const OPTION_NAME = 'mwp_worker_brand';
 
     private $context;
@@ -67,7 +66,7 @@ class MWP_Worker_Brand
     const CONTACT_TYPE_NONE = 0;
 
     /**
-     * Show both text ('textForClient') and the form that subits to the brand owner email address ('adminEmail').
+     * Show both text ('textForClient') and the form that submits to the brand owner email address ('adminEmail').
      */
     const CONTACT_TYPE_TEXT_PLUS_FORM = 1;
 

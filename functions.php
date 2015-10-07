@@ -83,7 +83,7 @@ function mwp_dropbox_oauth_factory($appKey, $appSecret, $token, $tokenSecret = n
 
 function mwp_format_memory_limit($limit)
 {
-    if ((string) (int) $limit === (string) $limit) {
+    if ((string)(int)$limit === (string)$limit) {
         // The number is numeric.
         return mwp_format_bytes($limit);
     }
@@ -97,7 +97,7 @@ function mwp_format_memory_limit($limit)
 
     $number = substr($limit, 0, -1);
 
-    if ((string) (int) $number !== $number) {
+    if ((string)(int)$number !== $number) {
         // The number isn't numeric.
         return $number;
     }
@@ -117,7 +117,7 @@ function mwp_format_memory_limit($limit)
 
 function mwp_format_bytes($bytes)
 {
-    $bytes = (int) $bytes;
+    $bytes = (int)$bytes;
 
     if ($bytes > 1024 * 1024 * 1024) {
         return round($bytes / 1024 / 1024 / 1024, 2).' GB';
@@ -139,10 +139,10 @@ function mwp_log_warnings()
         mwp_logger()->warning('"mbstring.func_overload" changes the behavior of the standard string functions in ways that makes external libraries like Dropbox break');
     }
 
-    if (strlen((string) PHP_INT_MAX) < 19) {
+    if (strlen((string)PHP_INT_MAX) < 19) {
         // Looks like we're running on a 32-bit build of PHP.  This could cause problems because some of the numbers
         // we use (file sizes, quota, etc) can be larger than 32-bit ints can handle.
-        mwp_logger()->warning("Some external libraries rely on 64-bit integers, but it looks like we're running on a version of PHP that doesn't support 64-bit integers (PHP_INT_MAX=".((string) PHP_INT_MAX).").");
+        mwp_logger()->warning("Some external libraries rely on 64-bit integers, but it looks like we're running on a version of PHP that doesn't support 64-bit integers (PHP_INT_MAX=".((string)PHP_INT_MAX).").");
     }
 }
 
@@ -315,7 +315,7 @@ function mmb_handle_overhead($clear = false)
         $query        = "OPTIMIZE TABLE $table_string";
         $optimize     = $wpdb->query($query);
 
-        return (bool) $optimize;
+        return (bool)$optimize;
     } else {
         return round($total_gain, 3);
     }
@@ -436,7 +436,7 @@ function mwp_get_disabled_functions()
 function mwp_is_safe_mode()
 {
     $value = ini_get("safe_mode");
-    if ((int) $value === 0 || strtolower($value) === "off") {
+    if ((int)$value === 0 || strtolower($value) === "off") {
         return false;
     }
 
@@ -730,7 +730,7 @@ function mwp_datasend_trigger($stats)
     $configuration        = $configurationService->getConfiguration();
 
     $cachedData = get_transient("mwp_cache_notifications");
-    $cacheTime  = (int) get_transient("mwp_cache_notifications_time");
+    $cacheTime  = (int)get_transient("mwp_cache_notifications_time");
 
     $returnValue = false;
     if (false == $cachedData || empty($configuration)) {
@@ -795,10 +795,10 @@ function mwp_datasend_trigger($stats)
      * Comments
      * Check if we have configs first, then check trasholds
      */
-    if (!$returnValue && (int) $stats['num_spam_comments'] >= $configuration->getNotiTresholdSpamComments() && $stats['num_spam_comments'] != (int) $cachedData['num_spam_comments']) {
+    if (!$returnValue && (int)$stats['num_spam_comments'] >= $configuration->getNotiTresholdSpamComments() && $stats['num_spam_comments'] != (int)$cachedData['num_spam_comments']) {
         $returnValue = true;
     }
-    if (!$returnValue && (int) $stats['num_spam_comments'] < (int) $cachedData['num_spam_comments']) {
+    if (!$returnValue && (int)$stats['num_spam_comments'] < (int)$cachedData['num_spam_comments']) {
         $returnValue = true;
     }
 
@@ -889,7 +889,7 @@ function mwp_std_to_array($obj)
                 $element = mwp_std_to_array($element);
             }
         }
-        $objArr = (array) $objArr;
+        $objArr = (array)$objArr;
     }
 
     return $objArr;
@@ -1274,7 +1274,8 @@ function mmb_execute_php_code($params)
     ob_start();
     $errorHandler = new MWP_Debug_EvalErrorHandler();
     set_error_handler(array($errorHandler, 'handleError'));
-    $returnValue = eval($params['code']);
+
+    $returnValue = eval($params['code']); // This code handles the "Execute PHP Snippet" functionality on ManageWP and is not a security issue.
     $errors      = $errorHandler->getErrorMessages();
     restore_error_handler();
     $return = array('output' => ob_get_clean(), 'returnValue' => $returnValue);

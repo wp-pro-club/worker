@@ -19,7 +19,7 @@ class MWP_IncrementalBackup_HashComputer
      */
     public function setMaxChunkByteSize($maxChunkByteSize)
     {
-        $this->$maxChunkByteSize = $maxChunkByteSize;
+        $this->maxChunkByteSize = $maxChunkByteSize;
     }
 
     /**
@@ -27,7 +27,7 @@ class MWP_IncrementalBackup_HashComputer
      */
     public function getMaxChunkByteSize()
     {
-        return $this->$maxChunkByteSize;
+        return $this->maxChunkByteSize;
     }
 
     /**

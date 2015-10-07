@@ -31,6 +31,8 @@ class MWP_Updater_TraceableUpdaterSkin
 
     protected $messages = array();
 
+    private $startedImplicit = false;
+
     public function request_filesystem_credentials($error = false, $context = '', $allow_relaxed_file_ownership = false)
     {
         if ($error instanceof WP_Error) {
@@ -61,6 +63,14 @@ class MWP_Updater_TraceableUpdaterSkin
      */
     public function feedback($data)
     {
+        if (!$this->startedImplicit) {
+            $this->startedImplicit = true;
+            @ob_implicit_flush(true);
+        }
+
+        echo ' ';
+        @ob_flush();
+
         if (is_wp_error($data)) {
             $string = $data->get_error_message();
         } else {

@@ -46,6 +46,24 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Changelog ==
 
+= 4.1.17 =
+
+- Fix: Updated the ignore list for backups
+
+= 4.1.16 =
+
+- Fix: Some minor fixes and improvements.
+
+= 4.1.15 =
+
+- Fix: Fix an issue where the plugin would not work properly if the OpenSSL extension was corrupted
+
+= 4.1.14 =
+
+- New: Expired transient cleaner
+- Fix: Improve compatibility with other plugins.
+- Fix: Improve plugin installation
+
 = 4.1.13 =
 
 - Add translation domain for WordPress plugin repository.
@@ -488,7 +506,7 @@ No. ManageWP works only with self-hosted WordPress sites.
 
 = Can I try all features for free? =
 
-Absolutely. The first month is on us.
+Absolutely. We've got a no-strings-attached 14-day Trial.
 
 = I have problems adding my site =
 

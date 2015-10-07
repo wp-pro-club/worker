@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.1.13
+Version: 4.1.17
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -194,7 +194,7 @@ if (!class_exists('MwpRecoveryKit', false)):
     {
         private static function requestJson($url)
         {
-            $response = wp_remote_get($url);
+            $response = wp_remote_get($url, array('timeout' => 60));
             if ($response instanceof WP_Error) {
                 throw new Exception('Unable to download checksum.json: '.$response->get_error_message());
             }
@@ -323,7 +323,7 @@ if (!class_exists('MwpRecoveryKit', false)):
                     continue;
                 }
                 $fileUrl  = sprintf('http://s3-us-west-2.amazonaws.com/mwp-orion-public/worker/raw/%s/%s', $version, $relativePath);
-                $response = wp_remote_get($fileUrl);
+                $response = wp_remote_get($fileUrl, array('timeout' => 60));
                 if ($response instanceof WP_Error) {
                     $lastError = 'Unable to download file '.$fileUrl.': '.$response->get_error_message();
                     $retryCount++;
@@ -423,8 +423,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.13';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2015-09-11 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.17';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2015-10-07 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {

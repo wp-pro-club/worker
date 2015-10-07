@@ -110,7 +110,7 @@ class MWP_IncrementalBackup_Model_ServerStatistics
         return new self(
             memory_get_peak_usage(true),
             memory_get_usage(true),
-            strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? array(0, 0, 0) : sys_getloadavg(),
+            function_exists('sys_getloadavg') ? sys_getloadavg() : array(0, 0, 0),
             mwp_is_shell_available()
         );
     }

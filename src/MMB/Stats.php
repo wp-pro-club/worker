@@ -21,31 +21,31 @@ class MMB_Stats extends MMB_Core
         $prefix         = $wpdb->prefix;
 
         if (!empty($options['users'])) {
-            $siteStatistics['users'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$prefix}users");
+            $siteStatistics['users'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$prefix}users");
         }
 
         if (!empty($options['approvedComments'])) {
-            $siteStatistics['approvedComments'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$prefix}comments c INNER JOIN {$prefix}posts p ON c.comment_post_ID = p.ID WHERE comment_approved = '1' AND p.post_status = 'publish'");
+            $siteStatistics['approvedComments'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$prefix}comments c INNER JOIN {$prefix}posts p ON c.comment_post_ID = p.ID WHERE comment_approved = '1' AND p.post_status = 'publish'");
         }
 
         if (!empty($options['activePlugins'])) {
-            $siteStatistics['activePlugins'] = count((array) get_option('active_plugins', array()));
+            $siteStatistics['activePlugins'] = count((array)get_option('active_plugins', array()));
         }
 
         if (!empty($options['publishedPosts'])) {
-            $siteStatistics['publishedPosts'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='post' AND post_status='publish'");
+            $siteStatistics['publishedPosts'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='post' AND post_status='publish'");
         }
 
         if (!empty($options['draftPosts'])) {
-            $siteStatistics['draftPosts'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='post' AND post_status='draft'");
+            $siteStatistics['draftPosts'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='post' AND post_status='draft'");
         }
 
         if (!empty($options['publishedPages'])) {
-            $siteStatistics['publishedPages'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='page' AND post_status='publish'");
+            $siteStatistics['publishedPages'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='page' AND post_status='publish'");
         }
 
         if (!empty($options['draftPages'])) {
-            $siteStatistics['draftPages'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='page' AND post_status='draft'");
+            $siteStatistics['draftPages'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE post_type='page' AND post_status='draft'");
         }
 
         $stats['site_statistics'] = $siteStatistics;
@@ -94,8 +94,8 @@ class MMB_Stats extends MMB_Core
 
     public function get_comments($stats, $options = array())
     {
-        $nposts  = isset($options['numberposts']) ? (int) $options['numberposts'] : 20;
-        $trimlen = isset($options['trimcontent']) ? (int) $options['trimcontent'] : 200;
+        $nposts  = isset($options['numberposts']) ? (int)$options['numberposts'] : 20;
+        $trimlen = isset($options['trimcontent']) ? (int)$options['trimcontent'] : 200;
 
         if ($nposts) {
             $comments = get_comments('status=hold&number='.$nposts);
@@ -134,7 +134,7 @@ class MMB_Stats extends MMB_Core
 
     public function get_posts($stats, $options = array())
     {
-        $nposts    = isset($options['numberposts']) ? (int) $options['numberposts'] : 20;
+        $nposts    = isset($options['numberposts']) ? (int)$options['numberposts'] : 20;
         $user_info = $this->getUsersIDs();
 
         if ($nposts) {
@@ -160,7 +160,7 @@ class MMB_Stats extends MMB_Core
             $posts                  = get_pages('post_status=publish&numberposts='.$nposts.'&orderby=post_date&order=desc');
             $recent_pages_published = array();
             if (!empty($posts)) {
-                foreach ((array) $posts as $id => $recent_page_published) {
+                foreach ((array)$posts as $id => $recent_page_published) {
                     $recent                 = new stdClass();
                     $recent->post_permalink = get_permalink($recent_page_published->ID);
                     $recent->post_type      = $recent_page_published->post_type;
@@ -191,7 +191,7 @@ class MMB_Stats extends MMB_Core
 
     public function get_drafts($stats, $options = array())
     {
-        $nposts = isset($options['numberposts']) ? (int) $options['numberposts'] : 20;
+        $nposts = isset($options['numberposts']) ? (int)$options['numberposts'] : 20;
 
         if ($nposts) {
             $drafts        = get_posts('post_status=draft&numberposts='.$nposts.'&orderby=post_date&order=desc');
@@ -211,7 +211,7 @@ class MMB_Stats extends MMB_Core
             $drafts              = get_pages('post_status=draft&numberposts='.$nposts.'&orderby=post_date&order=desc');
             $recent_pages_drafts = array();
             if (!empty($drafts)) {
-                foreach ((array) $drafts as $id => $recent_pages_draft) {
+                foreach ((array)$drafts as $id => $recent_pages_draft) {
                     $recent                 = new stdClass();
                     $recent->post_permalink = get_permalink($recent_pages_draft->ID);
                     $recent->ID             = $recent_pages_draft->ID;
@@ -233,7 +233,7 @@ class MMB_Stats extends MMB_Core
 
     public function get_scheduled($stats, $options = array())
     {
-        $numberOfItems  = isset($options['numberposts']) ? (int) $options['numberposts'] : 20;
+        $numberOfItems  = isset($options['numberposts']) ? (int)$options['numberposts'] : 20;
         $scheduledItems = array();
 
         if (!$numberOfItems) {
@@ -251,7 +251,7 @@ class MMB_Stats extends MMB_Core
             $scheduledItems[] = $recentPost;
         }
         $scheduledPages = get_pages('post_status=future&numberposts='.$numberOfItems.'&orderby=post_date&order=desc');
-        foreach ((array) $scheduledPages as $id => $scheduledPage) {
+        foreach ((array)$scheduledPages as $id => $scheduledPage) {
             $recentPage                 = new stdClass();
             $recentPage->post_permalink = get_permalink($scheduledPage->ID);
             $recentPage->ID             = $scheduledPage->ID;
@@ -320,9 +320,9 @@ class MMB_Stats extends MMB_Core
 
     public function get_errors($stats, $options = array())
     {
-        $period     = isset($options['days']) ? (int) $options['days'] * 86400 : 86400;
-        $maxerrors  = isset($options['max']) ? (int) $options['max'] : 100;
-        $last_bytes = isset($options['last_bytes']) ? (int) $options['last_bytes'] : 20480; //20KB
+        $period     = isset($options['days']) ? (int)$options['days'] * 86400 : 86400;
+        $maxerrors  = isset($options['max']) ? (int)$options['max'] : 100;
+        $last_bytes = isset($options['last_bytes']) ? (int)$options['last_bytes'] : 20480; //20KB
         $errors     = array();
         if (isset($options['get']) && $options['get'] == true) {
             if (function_exists('ini_get')) {
@@ -339,7 +339,7 @@ class MMB_Stats extends MMB_Core
                         while (!feof($logfile)) {
                             $line = fgets($logfile);
                             preg_match('/\[(.*)\]/Ui', $line, $match);
-                            if (!empty($match) && (strtotime($match[1]) > ((int) time() - $period))) {
+                            if (!empty($match) && (strtotime($match[1]) > ((int)time() - $period))) {
                                 $key = str_replace($match[0], '', $line);
                                 if (!isset($errors[$key])) {
                                     $errors[$key] = 1;
@@ -436,6 +436,24 @@ class MMB_Stats extends MMB_Core
         $stats['timezone_offset']       = get_option('gmt_offset');
         $stats['server_ip']             = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : null;
         $stats['hostname']              = php_uname('n');
+
+        $fs = new Symfony_Filesystem_Filesystem();
+        if (defined('WP_CONTENT_DIR')) {
+            $stats['content_relative_path'] = $fs->makePathRelative(WP_CONTENT_DIR, ABSPATH);
+        }
+
+        if (defined('WP_PLUGIN_DIR')) {
+            $stats['plugin_relative_path'] = $fs->makePathRelative(WP_PLUGIN_DIR, ABSPATH);
+        }
+
+        if (defined('WPMU_PLUGIN_DIR')) {
+            $stats['mu_plugin_relative_path'] = $fs->makePathRelative(WPMU_PLUGIN_DIR, ABSPATH);
+        }
+
+        if (defined('UPLOADS')) {
+            // Uploads is already relative
+            $stats['uploads_relative_path'] = UPLOADS;
+        }
 
         if (!function_exists('get_filesystem_method')) {
             include_once ABSPATH.'wp-admin/includes/file.php';

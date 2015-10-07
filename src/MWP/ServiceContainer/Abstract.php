@@ -88,6 +88,8 @@ abstract class MWP_ServiceContainer_Abstract implements MWP_ServiceContainer_Int
             'disable_mysql'                       => false,
             // Do not do self request on the website
             'disable_ping_back'                   => false,
+            // When was the logging started (timestamp)
+            'log_start'                           => false,
             // Log file to use for all worker logs.
             'log_file'                            => null,
             // GrayLog2 server to use for all worker logs.

@@ -114,6 +114,8 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         $mapper->addDefinition('get_state', new MWP_Action_Definition(array('MWP_Action_GetState', 'execute')));
         $mapper->addDefinition('add_site', new MWP_Action_Definition(array('MWP_Action_ConnectWebsite', 'execute')));
         $mapper->addDefinition('destroy_sessions', new MWP_Action_Definition(array('MWP_Action_DestroySessions', 'execute')));
+        $mapper->addDefinition('check_connection', new MWP_Action_Definition(array('MWP_Action_CheckConnection', 'execute')));
+        $mapper->addDefinition('clear_transient', new MWP_Action_Definition(array('MWP_Action_ClearTransient', 'execute')));
 
         // Incremental backup actions
         $mapper->addDefinition('list_files', new MWP_Action_Definition(array('MWP_Action_IncrementalBackup_ListFiles', 'queryFiles')));
@@ -183,11 +185,11 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
      */
     public function createSigner()
     {
-        if ($this->getParameter('prefer_phpseclib')) {
-            return MWP_Signer_Factory::createPhpSecLibSigner();
+        if ($this->getSystemEnvironment()->isOpenSslLibraryEnabled()) {
+            return MWP_Signer_Factory::createOpenSslSigner();
         }
 
-        return MWP_Signer_Factory::createSigner();
+        return MWP_Signer_Factory::createPhpSecLibSigner();
     }
 
     /**
@@ -195,11 +197,11 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
      */
     public function createCrypter()
     {
-        if ($this->getParameter('prefer_phpseclib')) {
-            return MWP_Crypter_Factory::createPhpSecLibCrypter();
+        if ($this->getSystemEnvironment()->isOpenSslLibraryEnabled()) {
+            return MWP_Crypter_Factory::createOpenSslCrypter();
         }
 
-        return MWP_Crypter_Factory::createCrypter();
+        return MWP_Crypter_Factory::createPhpSecLibCrypter();
     }
 
     /**
@@ -239,13 +241,48 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
     {
         $handlers = array();
 
-        if ($this->getParameter('log_file') && ($logFile = $this->createLogStream($this->getParameter('log_file')))) {
+        $fileLogging = $this->getParameter('log_file');
+        $gelfLogging = $this->getParameter('gelf_server');
+
+        if ($fileLogging || $gelfLogging) {
+            $logStart = $this->getParameter('log_start');
+
+            // Save when the first log started
+            if (!$logStart) {
+                $parameters = $this->getWordPressContext()->optionGet('mwp_container_parameters');
+
+                $parameters['log_start'] = time();
+
+                $this->getWordPressContext()->optionSet('mwp_container_parameters', $parameters);
+            }
+
+            // Logs can only go on for two days, always delete them after that
+            if ($logStart && time() - $logStart > 172800) {
+                // delete log file and disable logging
+                @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
+                $this->getWordPressContext()->optionDelete('mwp_debug_enable');
+                $parameters = $this->getWordPressContext()->optionGet('mwp_container_parameters');
+
+                $fileLogging = null;
+                $gelfLogging = null;
+
+                $parameters['gelf_server'] = null;
+                $parameters['log_file']    = null;
+                $parameters['log_start']   = false;
+
+                $this->getWordPressContext()->optionSet('mwp_container_parameters', $parameters);
+            }
+        } elseif (@file_exists(dirname(__FILE__).'/../../../'.$fileLogging)) {
+            @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
+        }
+
+        if ($fileLogging && ($logFile = $this->createLogStream($fileLogging))) {
             $fileHandler = new Monolog_Handler_StreamHandler($logFile);
             $fileHandler->setFormatter(new Monolog_Formatter_HtmlFormatter());
             $handlers[] = $fileHandler;
         }
 
-        if ($this->getParameter('gelf_server')) {
+        if ($gelfLogging) {
             $publisher  = new Gelf_Publisher($this->getParameter('gelf_server'), $this->getParameter('gelf_port') ? $this->getParameter('gelf_port') : Gelf_Publisher::GRAYLOG2_DEFAULT_PORT);
             $handlers[] = new Monolog_Handler_LegacyGelfHandler($publisher);
         }

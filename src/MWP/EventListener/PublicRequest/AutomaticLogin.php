@@ -71,11 +71,11 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         try {
             $this->nonceManager->useNonce($messageId);
         } catch (MWP_Security_Exception_NonceFormatInvalid $e) {
-            $this->context->wpDie(__("The automatic login token is invalid. Please try again, or, if this keeps happening, contact support.", 'worker'));
+            $this->context->wpDie(__("The automatic login token is invalid. Please try again, or, if this keeps happening, contact support.", 'worker'), '', 200);
         } catch (MWP_Security_Exception_NonceExpired $e) {
-            $this->context->wpDie(__("The automatic login token has expired. Please try again, or, if this keeps happening, contact support.", 'worker'));
+            $this->context->wpDie(__("The automatic login token has expired. Please try again, or, if this keeps happening, contact support.", 'worker'), '', 200);
         } catch (MWP_Security_Exception_NonceAlreadyUsed $e) {
-            $this->context->wpDie(__("The automatic login token was already used. Please try again, or, if this keeps happening, contact support.", 'worker'));
+            $this->context->wpDie(__("The automatic login token was already used. Please try again, or, if this keeps happening, contact support.", 'worker'), '', 200);
         }
 
         if ($secureKey = $this->configuration->getSecureKey()) {
@@ -86,13 +86,13 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         }
 
         if (!$verify) {
-            $this->context->wpDie(__("The automatic login token is invalid. Please check if this website is properly connected with your dashboard, or, if this keeps happening, contact support.", 'worker'));
+            $this->context->wpDie(__("The automatic login token is invalid. Please check if this website is properly connected with your dashboard, or, if this keeps happening, contact support.", 'worker'), '', 200);
         }
 
         $user = $this->context->getUserByUsername($username);
 
         if ($user === null) {
-            $this->context->wpDie(sprintf(__("User <strong>%s</strong> could not be found.", 'worker'), htmlspecialchars($username)));
+            $this->context->wpDie(sprintf(__("User <strong>%s</strong> could not be found.", 'worker'), htmlspecialchars($username)), '', 200);
         }
 
         $this->context->setCurrentUser($user);
