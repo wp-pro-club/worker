@@ -16,9 +16,15 @@ class MWP_Event_MasterRequest extends MWP_Event_AbstractRequest
      */
     private $params;
 
-    function __construct(MWP_Worker_Request $request, array $params)
+    /**
+     * @var boolean
+     */
+    private $muContext;
+
+    function __construct(MWP_Worker_Request $request, array $params, $muContext = false)
     {
-        $this->params = $params;
+        $this->params    = $params;
+        $this->muContext = $muContext;
 
         parent::__construct($request);
     }
@@ -31,5 +37,10 @@ class MWP_Event_MasterRequest extends MWP_Event_AbstractRequest
     public function setParams(array $params)
     {
         $this->params = $params;
+    }
+
+    public function isMuContext()
+    {
+        return $this->muContext;
     }
 }

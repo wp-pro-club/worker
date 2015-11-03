@@ -55,6 +55,22 @@ class MWP_WordPress_Context
     }
 
     /**
+     * Escapes data for use in a MySQL query.
+     *
+     * Usually you should prepare queries using wpdb::prepare().
+     * Sometimes, spot-escaping is required or useful. One example
+     * is preparing an array for use in an IN clause.
+     *
+     * @param array|string $data
+     *
+     * @return array|string
+     */
+    public function escapeParameter($data)
+    {
+        return esc_sql($data);
+    }
+
+    /**
      * @return string
      */
     public function getVersion()
@@ -403,6 +419,11 @@ class MWP_WordPress_Context
         $this->requirePluggable();
 
         return wp_mail($to, $subject, $message, $headers, $attachments);
+    }
+
+    public function getAdminUrl($where)
+    {
+        return admin_url($where);
     }
 
     public function isInAdminPanel()

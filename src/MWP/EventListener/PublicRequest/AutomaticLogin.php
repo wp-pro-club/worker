@@ -99,8 +99,8 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $this->attachSessionTokenListener();
         $this->context->setAuthCookie($user);
 
-        $currentUri  = empty($request->server['REQUEST_URI']) ? '/' : $request->server['REQUEST_URI'];
-        $redirectUri = $this->omitUriParameters($currentUri, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect'));
+        $adminUri    = rtrim($this->context->getAdminUrl(''), '/').'/'.$where;
+        $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect'));
 
         $this->context->setCookie($this->getCookieName(), '1');
 
@@ -128,14 +128,12 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         }
     }
 
-    private function omitUriParameters($uri, array $omitParameters)
+    private function modifyUriParameters($uri, array $addParameters, array $omitParameters)
     {
-        if (strpos($uri, '?') === false) {
-            return $uri;
-        }
+        $currentUrl = parse_url($uri) + array('port' => '', 'path' => '', 'query' => '');
+        parse_str($currentUrl['query'], $query);
 
-        $rawQuery = parse_url($uri, PHP_URL_QUERY);
-        parse_str($rawQuery, $query);
+        $query = array_merge($query, $addParameters);
 
         foreach ($omitParameters as $key) {
             if (array_key_exists($key, $query)) {
@@ -143,8 +141,16 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
             }
         }
 
-        // Replace everything from "?" onwards with "?key=value" or an empty string.
-        return substr($uri, 0, strpos($uri, '?')).(count($query) ? '?'.http_build_query($query) : '');
+        $currentUrl['query'] = http_build_query($query);
+
+        return sprintf(
+            '%s://%s%s%s%s',
+            $currentUrl['scheme'],
+            $currentUrl['host'],
+            $currentUrl['port'] ? ':'.$currentUrl['port'] : '',
+            $currentUrl['path'] ? '/'.ltrim($currentUrl['path'], '/') : '/',
+            $currentUrl['query'] ? '?'.$currentUrl['query'] : ''
+        );
     }
 
     private function attachSessionTokenListener()

@@ -68,8 +68,13 @@ class MWP_Worker_Kernel
         }
 
         try {
+            // Get action info.
+            $actionRegistry   = $container->getActionRegistry();
+            $actionDefinition = $actionRegistry->getDefinition($actionName);
+            $hookName         = $actionDefinition->getOption('hook_name');
+
             // This is a master request. Allow early hooks to verify and do everything required with the request.
-            $masterRequestEvent = new MWP_Event_MasterRequest($request, $params);
+            $masterRequestEvent = new MWP_Event_MasterRequest($request, $params, empty($hookName));
             $this->dispatcher->dispatch(MWP_Event_Events::MASTER_REQUEST, $masterRequestEvent);
             if ($masterRequestEvent->hasResponse()) {
                 call_user_func($deferredCallback, null, $masterRequestEvent->getResponse());
@@ -77,10 +82,6 @@ class MWP_Worker_Kernel
                 return;
             }
             $params = $masterRequestEvent->getParams();
-
-            // Get action info.
-            $actionRegistry   = $container->getActionRegistry();
-            $actionDefinition = $actionRegistry->getDefinition($actionName);
 
             $callback = $actionDefinition->getCallback();
 
@@ -96,7 +97,6 @@ class MWP_Worker_Kernel
             }
 
             // Check if the action call should be deferred.
-            $hookName = $actionDefinition->getOption('hook_name');
             if ($hookName !== null && $deferredCallback !== null) {
                 $proxy = new MWP_WordPress_HookProxy(array($this, 'hookResponse'), $request, $callback, $params, $actionDefinition, $deferredCallback);
                 $context->addAction($hookName, $proxy->getCallable(), $actionDefinition->getOption('hook_priority'));

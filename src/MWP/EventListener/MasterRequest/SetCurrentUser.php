@@ -8,7 +8,7 @@
  * file that was distributed with this source code.
  */
 
-class MWP_EventListener_ActionRequest_SetCurrentUser implements Symfony_EventDispatcher_EventSubscriberInterface
+class MWP_EventListener_MasterRequest_SetCurrentUser implements Symfony_EventDispatcher_EventSubscriberInterface
 {
 
     private $context;
@@ -21,11 +21,29 @@ class MWP_EventListener_ActionRequest_SetCurrentUser implements Symfony_EventDis
     public static function getSubscribedEvents()
     {
         return array(
-            MWP_Event_Events::ACTION_REQUEST => array('onActionRequest', -300),
+            MWP_Event_Events::MASTER_REQUEST => array('onMasterRequest', -2000),
         );
     }
 
-    public function onActionRequest(MWP_Event_ActionRequest $event)
+    public function onMasterRequest(MWP_Event_MasterRequest $event)
+    {
+        if (!$event->getRequest()->isAuthenticated()) {
+            return;
+        }
+
+        if (!$event->isMuContext()) {
+            // Set the user on the earliest hook after pluggable.php is loaded.
+            $hookProxy = new MWP_WordPress_HookProxy(array($this, 'setCurrentUserFromEvent'), $event);
+            $this->context->addAction('plugins_loaded', $hookProxy->getCallable(), -9999);
+
+            return;
+        }
+
+        // We're inside the MU context, so set the user immediately.
+        $this->setCurrentUserFromEvent($event);
+    }
+
+    public function setCurrentUserFromEvent(MWP_Event_MasterRequest $event)
     {
         $user         = null;
         $usernameUsed = $event->getRequest()->getUsername();

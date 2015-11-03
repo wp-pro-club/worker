@@ -73,7 +73,7 @@ class MWP_EventListener_PublicRequest_BrandContactSupport implements Symfony_Eve
     public function enqueueSupportStyles()
     {
         $this->context->enqueueStyle('wp-jquery-ui');
-        $this->context->enqueueStyle('jquery-style', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.css');
+        $this->context->enqueueStyle('wp-jquery-ui-dialog');
     }
 
     /**

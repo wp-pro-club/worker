@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.1.17
+Version: 4.1.22
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -84,7 +84,7 @@ if (!function_exists('mwp_fail_safe')):
         $workerSettings = get_option('wrksettings');
         $userID         = 0;
         if (!empty($workerSettings['dataown'])) {
-            $userID = (int) $workerSettings['dataown'];
+            $userID = (int)$workerSettings['dataown'];
         }
         $body = sprintf("Corrupt ManageWP Worker v%s installation detected. Site URL in question is %s. User email is %s (User ID: %s). Attempting recovery process at %s. The error that caused this:\n\n<pre>%s</pre>", $GLOBALS['MMB_WORKER_VERSION'], $siteUrl, $to, $userID, date('Y-m-d H:i:s'), $fullError);
         mail('dev@managewp.com', $title, $body, "Content-Type: text/html");
@@ -172,7 +172,7 @@ if (!function_exists('mwp_container')):
         static $container;
 
         if ($container === null) {
-            $parameters = (array) get_option('mwp_container_parameters', array()) + (array) get_option('mwp_container_site_parameters', array());
+            $parameters = (array)get_option('mwp_container_parameters', array()) + (array)get_option('mwp_container_site_parameters', array());
             $container  = new MWP_ServiceContainer_Production(array(
                     'worker_realpath' => __FILE__,
                     'worker_basename' => 'worker/init.php',
@@ -216,7 +216,7 @@ if (!class_exists('MwpRecoveryKit', false)):
             $lockTime = get_option('mwp_incremental_recover_lock');
 
             if ($lockTime && $lockTime - time() < 1200) { // lock for 20 minutes
-                return array();
+                throw new Exception('Another incremental update or recovery process is already active', 1337);
             }
 
             ignore_user_abort(true);
@@ -271,6 +271,41 @@ if (!class_exists('MwpRecoveryKit', false)):
             return true;
         }
 
+        private static function clearUnknownFiles($filesAndChecksums, $fs)
+        {
+            /** @var WP_Filesystem_Base $fs */
+            $base = dirname(__FILE__);
+            if (version_compare(phpversion(), '5.3', '<')) {
+                $directory = new RecursiveDirectoryIterator($base);
+            } else {
+                /** @handled constant */
+                $directory = new RecursiveDirectoryIterator($base, RecursiveDirectoryIterator::SKIP_DOTS);
+            }
+
+            $ignoreDelete = array(
+                'log.html' => 1,
+            );
+
+            $files = array_keys(iterator_to_array(new RecursiveIteratorIterator($directory, RecursiveIteratorIterator::SELF_FIRST, RecursiveIteratorIterator::CATCH_GET_CHILD)));
+
+            foreach ($files as $file) {
+                $file = preg_replace('/^'.preg_quote($base, '/').'/', '', $file, 1, $count);
+
+                if (!$count) {
+                    continue;
+                }
+
+                $file = strtr($file, '\\', '/');
+                $file = ltrim($file, '/');
+
+                if (isset($filesAndChecksums[$file]) || isset($ignoreDelete[$file])) {
+                    continue;
+                }
+
+                $fs->delete($fs->find_folder(WP_PLUGIN_DIR).'worker/'.$file);
+            }
+        }
+
         public static function recoverFiles($dirName, array $filesAndChecksums, $version)
         {
             require_once ABSPATH.'wp-admin/includes/file.php';
@@ -291,6 +326,8 @@ if (!class_exists('MwpRecoveryKit', false)):
             if (!$fs->connect()) {
                 throw new Exception('Unable to connect to the file system', error_get_last());
             }
+
+            $cachedFilesAndChecksums = $filesAndChecksums;
 
             // First create directories and remove them from the array.
             // Must be done before shuffling because of nesting.
@@ -351,6 +388,8 @@ if (!class_exists('MwpRecoveryKit', false)):
                 $recoveredFiles[] = $relativePath;
                 next($filesAndChecksums);
             }
+
+            self::clearUnknownFiles($cachedFilesAndChecksums, $fs);
 
             return $recoveredFiles;
         }
@@ -423,13 +462,21 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.17';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2015-10-07 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.22';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2015-11-03 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {
             trigger_error("ManageWP Worker plugin requires PHP 5.2 or higher.", E_USER_ERROR);
             exit;
+        }
+
+        if ($incrementalUpdateTime = get_option('mwp_incremental_update_active')) {
+            if (time() - $incrementalUpdateTime > 3600) {
+                delete_option('mwp_incremental_update_active');
+            } else {
+                return;
+            }
         }
 
         if ($recoveringTime = get_option('mwp_recovering')) {
@@ -464,8 +511,12 @@ if (!function_exists('mwp_init')):
                     delete_option('mwp_recovering');
                     mail('dev@managewp.com', sprintf("ManageWP Worker recovered on %s", get_option('siteurl')), sprintf("%d files successfully recovered in this recovery fork of ManageWP Worker v%s. Filesystem method used was <code>%s</code>.\n\n<pre>%s</pre>", count($recoveredFiles), $GLOBALS['MMB_WORKER_VERSION'], get_filesystem_method(), implode("\n", $recoveredFiles)), 'Content-Type: text/html');
                 } catch (Exception $e) {
-                    if ($recoveringTime + 3600 > time()) {
-                        // Do not start any more recovery processes if an hour's passed.
+                    if ($e->getCode() === 1337) {
+                        return;
+                    }
+
+                    if (time() - $recoveringTime > 3600) {
+                        // If the recovery process does not complete after an hour, deactivate the Worker for safety
                         $recoveryKit->selfDeactivate($e->getMessage());
                     }
                 }

@@ -1087,7 +1087,9 @@ function mmb_update_worker_plugin($params)
     global $mmb_core;
     if (!empty($params['version'])) {
         $recoveryKit = new MwpRecoveryKit();
+        update_option('mwp_incremental_update_active', time());
         $files       = $recoveryKit->recover($params['version']);
+        delete_option('mwp_incremental_update_active');
         mmb_response(array('files' => $files, 'success' => 'ManageWP Worker plugin successfully updated'), true);
     } else {
         mmb_response($mmb_core->update_worker_plugin($params), true);

@@ -416,7 +416,7 @@ class MMB_Stats extends MMB_Core
         }
 
         /** @var $wpdb wpdb */
-        global $wpdb, $wp_version;
+        global $wpdb, $wp_version, $mmb_plugin_dir;
 
         $stats['worker_version']        = $GLOBALS['MMB_WORKER_VERSION'];
         $stats['worker_revision']       = $GLOBALS['MMB_WORKER_REVISION'];
@@ -436,6 +436,10 @@ class MMB_Stats extends MMB_Core
         $stats['timezone_offset']       = get_option('gmt_offset');
         $stats['server_ip']             = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : null;
         $stats['hostname']              = php_uname('n');
+        $stats['db_name']               = $this->get_active_db();
+        $stats['db_prefix']             = $wpdb->prefix;
+        $stats['content_path']          = WP_CONTENT_DIR;
+        $stats['worker_path']           = $mmb_plugin_dir;
 
         $fs = new Symfony_Filesystem_Filesystem();
         if (defined('WP_CONTENT_DIR')) {
