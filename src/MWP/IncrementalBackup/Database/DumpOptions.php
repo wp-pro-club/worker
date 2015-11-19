@@ -32,6 +32,11 @@ class MWP_IncrementalBackup_Database_DumpOptions
     private $dropTables = true;
 
     /**
+     * @var array
+     */
+    private $connectionMethods = array();
+
+    /**
      * @return array
      */
     public function getTables()
@@ -107,6 +112,26 @@ class MWP_IncrementalBackup_Database_DumpOptions
             $dumpOptions->setSkipExtendedInsert($options['skip_extended_insert']);
         }
 
+        if (isset($options['connection_methods'])) {
+            $dumpOptions->setConnectionMethods($options['connection_methods']);
+        }
+
         return $dumpOptions;
+    }
+
+    /**
+     * @return array
+     */
+    public function getConnectionMethods()
+    {
+        return $this->connectionMethods;
+    }
+
+    /**
+     * @param array $connectionMethods
+     */
+    public function setConnectionMethods($connectionMethods)
+    {
+        $this->connectionMethods = $connectionMethods;
     }
 }

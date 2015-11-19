@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.1.22
+Version: 4.1.24
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -41,7 +41,12 @@ if (!function_exists('mwp_fail_safe')):
 
         $lastError = error_get_last();
 
-        if (!$lastError || $lastError['type'] !== E_ERROR) {
+        $acceptedErrorTypes = array(
+            E_ERROR,
+            E_COMPILE_ERROR,
+        );
+
+        if (!$lastError || !in_array($lastError['type'], $acceptedErrorTypes)) {
             return;
         }
 
@@ -59,7 +64,9 @@ if (!function_exists('mwp_fail_safe')):
         }
 
         // The only fatal error that we would get would be a 'Class 'X' not found in ...', so look out only for those messages.
-        if (!preg_match('/^Class \'[^\']+\' not found$/', $lastError['message'])) {
+        if (!preg_match('/^Class \'[^\']+\' not found$/', $lastError['message']) &&
+            !preg_match('/^require_once\(\): Failed opening required \'[^\']+\'/', $lastError['message'])
+        ) {
             return;
         }
 
@@ -173,11 +180,13 @@ if (!function_exists('mwp_container')):
 
         if ($container === null) {
             $parameters = (array)get_option('mwp_container_parameters', array()) + (array)get_option('mwp_container_site_parameters', array());
+            $requestId  = isset($_GET['mwprid']) && is_string($_GET['mwprid']) ? $_GET['mwprid'] : null;
             $container  = new MWP_ServiceContainer_Production(array(
                     'worker_realpath' => __FILE__,
                     'worker_basename' => 'worker/init.php',
                     'worker_version'  => $GLOBALS['MMB_WORKER_VERSION'],
                     'worker_revision' => $GLOBALS['MMB_WORKER_REVISION'],
+                    'request_id'      => $requestId,
                 ) + $parameters);
         }
 
@@ -204,7 +213,7 @@ if (!class_exists('MwpRecoveryKit', false)):
 
             $responseJson = json_decode($response['body'], true);
 
-            if ($responseJson === null) {
+            if (empty($responseJson) || !is_array($responseJson)) {
                 throw new Exception('Error while parsing checksum.json.');
             }
 
@@ -215,17 +224,17 @@ if (!class_exists('MwpRecoveryKit', false)):
         {
             $lockTime = get_option('mwp_incremental_recover_lock');
 
-            if ($lockTime && $lockTime - time() < 1200) { // lock for 20 minutes
+            if ($lockTime && time() - $lockTime < 1200) { // lock for 20 minutes
                 throw new Exception('Another incremental update or recovery process is already active', 1337);
             }
-
-            ignore_user_abort(true);
-            $dirName           = realpath(dirname(__FILE__));
-            $filesAndChecksums = $this->requestJson(sprintf('http://s3-us-west-2.amazonaws.com/mwp-orion-public/worker/raw/%s/checksum.json', $version));
 
             register_shutdown_function(array($this, 'releaseLock'));
 
             update_option('mwp_incremental_recover_lock', time());
+
+            ignore_user_abort(true);
+            $dirName           = realpath(dirname(__FILE__));
+            $filesAndChecksums = $this->requestJson(sprintf('http://s3-us-west-2.amazonaws.com/mwp-orion-public/worker/raw/%s/checksum.json', $version));
 
             try {
                 $files = $this->recoverFiles($dirName, $filesAndChecksums, $version);
@@ -283,7 +292,10 @@ if (!class_exists('MwpRecoveryKit', false)):
             }
 
             $ignoreDelete = array(
-                'log.html' => 1,
+                'log.html'      => 1,
+                'worker.json'   => 1,
+                'init.php'      => 1, // safe-guard
+                'functions.php' => 1, // safe-guard
             );
 
             $files = array_keys(iterator_to_array(new RecursiveIteratorIterator($directory, RecursiveIteratorIterator::SELF_FIRST, RecursiveIteratorIterator::CATCH_GET_CHILD)));
@@ -302,7 +314,7 @@ if (!class_exists('MwpRecoveryKit', false)):
                     continue;
                 }
 
-                $fs->delete($fs->find_folder(WP_PLUGIN_DIR).'worker/'.$file);
+                $fs->delete($fs->find_folder(WP_PLUGIN_DIR).'worker/'.$file, false, 'f');
             }
         }
 
@@ -324,7 +336,9 @@ if (!class_exists('MwpRecoveryKit', false)):
             $fs = $GLOBALS['wp_filesystem'];
 
             if (!$fs->connect()) {
-                throw new Exception('Unable to connect to the file system', error_get_last());
+                $lastError    = error_get_last();
+                $errorMessage = $lastError ? $lastError['message'] : '(no error logged)';
+                throw new Exception('Unable to connect to the file system: '.$errorMessage);
             }
 
             $cachedFilesAndChecksums = $filesAndChecksums;
@@ -462,8 +476,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.22';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2015-11-03 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.24';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2015-11-19 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {
@@ -488,6 +502,13 @@ if (!function_exists('mwp_init')):
                 $headers = array();
                 if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
                     $headers['AUTHORIZATION'] = $_SERVER['HTTP_AUTHORIZATION'];
+                }
+
+                // fork only once, so we do not make too many parallel requests to the website
+                $lockTime = get_option('mwp_incremental_recover_lock');
+
+                if ($lockTime && time() - $lockTime < 1200) { // lock for 20 minutes
+                    return;
                 }
 
                 wp_remote_post(get_bloginfo('wpurl'), array(
@@ -585,9 +606,11 @@ if (!function_exists('mwp_init')):
         $kernel->handleRequest($request, $responder->getCallback(), true);
     }
 
-    require_once dirname(__FILE__).'/functions.php';
-
     if (!defined('MWP_SKIP_BOOTSTRAP') || !MWP_SKIP_BOOTSTRAP) {
+        if (!get_option('mwp_recovering')) {
+            require_once dirname(__FILE__).'/functions.php';
+        }
+
         mwp_init();
     }
 endif;

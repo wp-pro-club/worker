@@ -297,7 +297,7 @@ class Symfony_Process_Process
             }
         }
 
-        $this->process = proc_open($commandline, $descriptors, $this->processPipes->pipes, $this->cwd, $this->env, $this->options);
+        $this->process = @proc_open($commandline, $descriptors, $this->processPipes->pipes, $this->cwd, $this->env, $this->options);
 
         if (!is_resource($this->process)) {
             throw new Symfony_Process_Exception_RuntimeException('Unable to launch a new process.');

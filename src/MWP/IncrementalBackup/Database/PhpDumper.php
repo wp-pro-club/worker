@@ -11,6 +11,10 @@
 class MWP_IncrementalBackup_Database_PhpDumper implements MWP_IncrementalBackup_Database_DumperInterface
 {
 
+    const METHOD_PDO = 1;
+    const METHOD_MYSQLI = 2;
+    const METHOD_MYSQL = 3;
+
     private $transferSize = 102400; // 100kb
 
     /**
@@ -27,6 +31,11 @@ class MWP_IncrementalBackup_Database_PhpDumper implements MWP_IncrementalBackup_
      * @var MWP_IncrementalBackup_Database_DumpOptions
      */
     private $options;
+
+    /**
+     * @var MWP_IncrementalBackup_Database_ConnectionInterface
+     */
+    private $connection;
 
     /**
      * @param MWP_IncrementalBackup_Database_Configuration $configuration
@@ -65,19 +74,51 @@ class MWP_IncrementalBackup_Database_PhpDumper implements MWP_IncrementalBackup_
      */
     public function createStream(array $tables = array())
     {
+        if (!$this->connection) {
+            $this->createConnection();
+        }
+        $this->options->setTables($tables);
+        $dumper = new MWP_IncrementalBackup_Database_StreamableQuerySequenceDump($this->connection, $this->options);
+
+        return $dumper->createStream();
+    }
+
+    private function createConnection()
+    {
+        $connectionMethods = $this->options->getConnectionMethods();
+        if (!empty($connectionMethods) && is_array($connectionMethods)) {
+            $this->getPreferredConnection($connectionMethods);
+            if ($this->connection !== null) {
+                return $this->connection;
+            }
+        }
+
         if ($this->environment->isPdoEnabled()) {
-            $connection = new MWP_IncrementalBackup_Database_PdoConnection($this->configuration);
+            $this->connection = new MWP_IncrementalBackup_Database_PdoConnection($this->configuration);
         } elseif ($this->environment->isMysqliEnabled()) {
-            $connection = new MWP_IncrementalBackup_Database_MysqliConnection($this->configuration);
+            $this->connection = new MWP_IncrementalBackup_Database_MysqliConnection($this->configuration);
         } elseif ($this->environment->isMysqlEnabled()) {
-            $connection = new MWP_IncrementalBackup_Database_MysqlConnection($this->configuration);
+            $this->connection = new MWP_IncrementalBackup_Database_MysqlConnection($this->configuration);
         } else {
             throw new MWP_IncrementalBackup_Database_Exception_ConnectionException("No mysql drivers available.");
         }
 
-        $this->options->setTables($tables);
-        $dumper = new MWP_IncrementalBackup_Database_StreamableQuerySequenceDump($connection, $this->options);
+        return $this->connection;
+    }
 
-        return $dumper->createStream();
+    private function getPreferredConnection($methods)
+    {
+        foreach ($methods as $method) {
+            try {
+                if ($method == self::METHOD_PDO && $this->environment->isPdoEnabled()) {
+                    $this->connection = new MWP_IncrementalBackup_Database_PdoConnection($this->configuration);
+                } elseif ($method == self::METHOD_MYSQLI && $this->environment->isMysqliEnabled()) {
+                    $this->connection = new MWP_IncrementalBackup_Database_MysqliConnection($this->configuration);
+                } elseif ($method == self::METHOD_MYSQL && $this->environment->isMysqlEnabled()) {
+                    $this->connection = new MWP_IncrementalBackup_Database_MysqlConnection($this->configuration);
+                }
+            } catch (Exception $e) {
+            }
+        }
     }
 }

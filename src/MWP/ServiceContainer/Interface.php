@@ -166,4 +166,9 @@ interface MWP_ServiceContainer_Interface
      * @return MWP_Migration_Migration
      */
     public function getMigration();
+
+    /**
+     * @return Gelf_Publisher
+     */
+    public function getGelfPublisher();
 }

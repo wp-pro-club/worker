@@ -2,77 +2,85 @@
 
 class Gelf_Publisher
 {
-    /**
-     * @var integer
-     */
     const CHUNK_SIZE_WAN = 1420;
 
-    /**
-     * @var integer
-     */
     const CHUNK_SIZE_LAN = 8154;
 
-    /**
-     * @var integer
-     */
     const GRAYLOG2_DEFAULT_PORT = 12201;
 
-    /**
-     * @var string
-     */
     const GRAYLOG2_PROTOCOL_VERSION = '1.0';
 
     /**
      * @var string
      */
-    protected $hostname = null;
+    protected $hostname;
 
     /**
-     * @var integer
+     * @var int
      */
-    protected $port = null;
+    protected $port;
 
     /**
-     * @var integer
+     * @var int|null
      */
-    protected $chunkSize = null;
+    protected $fallbackPort;
 
     /**
-     * @var resource
+     * @var int
+     */
+    protected $chunkSize;
+
+    /**
+     * @var resource|null
      */
     protected $streamSocketClient = null;
+
+    /**
+     * @var bool
+     */
+    private static $brokenSocket = false;
 
     /**
      * Creates a new publisher that sends errors to a Graylog2 server via UDP
      *
      * @throws InvalidArgumentException
      *
-     * @param string  $hostname
-     * @param integer $port
-     * @param integer $chunkSize
+     * @param string       $hostname
+     * @param integer      $port
+     * @param integer|null $fallbackPort
+     * @param integer      $chunkSize
      */
-    public function __construct($hostname, $port = self::GRAYLOG2_DEFAULT_PORT, $chunkSize = self::CHUNK_SIZE_WAN)
+    public function __construct($hostname, $port = null, $fallbackPort = null, $chunkSize = null)
     {
         // Check whether the parameters are set correctly
         if (!$hostname) {
             throw new InvalidArgumentException('$hostname must be set');
         }
 
-        if (!is_numeric($port)) {
+        if ($port === null) {
+            $port = self::GRAYLOG2_DEFAULT_PORT;
+        } elseif (!is_numeric($port)) {
             throw new InvalidArgumentException('$port must be an integer');
         }
 
-        if (!is_numeric($chunkSize)) {
+        if ($fallbackPort !== null && !is_numeric($fallbackPort)) {
+            throw new InvalidArgumentException('$fallbackPort must be an integer');
+        }
+
+        if ($chunkSize === null) {
+            $chunkSize = self::CHUNK_SIZE_WAN;
+        } elseif (!is_numeric($chunkSize)) {
             throw new InvalidArgumentException('$chunkSize must be an integer');
         }
 
-        $this->hostname  = $hostname;
-        $this->port      = $port;
-        $this->chunkSize = $chunkSize;
+        $this->hostname     = $hostname;
+        $this->port         = $port;
+        $this->fallbackPort = $fallbackPort;
+        $this->chunkSize    = $chunkSize;
     }
 
     /**
-     * Publishes a Gelf_Message, returns false if an error occured during write
+     * Publishes a Gelf_Message, returns false if an error occurred during write.
      *
      * @throws UnexpectedValueException
      *
@@ -82,6 +90,9 @@ class Gelf_Publisher
      */
     public function publish(Gelf_Message $message)
     {
+        if (self::$brokenSocket) {
+            return false;
+        }
         // Check if required message parameters are set
         if (!$message->getShortMessage() || !$message->getHost()) {
             throw new UnexpectedValueException(
@@ -95,19 +106,26 @@ class Gelf_Publisher
         // Encode the message as json string and compress it using gzip
         $preparedMessage = $this->getPreparedMessage($message);
 
-        // Open a udp connection to graylog server
+        // Infinite-loop break.
+        self::$brokenSocket = true;
+        // Open a connection to GrayLog server.
         $socket = $this->getSocketConnection();
+
+        if (!$socket) {
+            return false;
+        }
+        self::$brokenSocket = false;
 
         // Several udp writes are required to publish the message
         if ($this->isMessageSizeGreaterChunkSize($preparedMessage)) {
             // A unique id which consists of the microtime and a random value
             $messageId = $this->getMessageId();
 
-            // Split the message into chunks
+            // Split the message into chunks.
             $messageChunks      = $this->getMessageChunks($preparedMessage);
             $messageChunksCount = count($messageChunks);
 
-            // Send chunks to graylog server
+            // Send chunks to GrayLog server.
             foreach (array_values($messageChunks) as $messageChunkIndex => $messageChunk) {
                 $bytesWritten = $this->writeMessageChunkToSocket(
                     $socket,
@@ -149,14 +167,16 @@ class Gelf_Publisher
     }
 
     /**
-     * @return resource
+     * @return resource|false
      */
     protected function getSocketConnection()
     {
         if (!$this->streamSocketClient) {
-            $this->streamSocketClient = stream_socket_client(sprintf('udp://%s:%d',
-                gethostbyname($this->hostname),
-                $this->port));
+            $hostname                 = gethostbyname($this->hostname);
+            $this->streamSocketClient = stream_socket_client(sprintf('udp://%s:%d', $hostname, $this->port));
+            if ($this->streamSocketClient === false && $this->fallbackPort) {
+                $this->streamSocketClient = stream_socket_client(sprintf('tcp://%s:%d', $hostname, $this->fallbackPort));
+            }
         }
 
         return $this->streamSocketClient;
@@ -177,7 +197,7 @@ class Gelf_Publisher
      */
     protected function getMessageId()
     {
-        return (float) (microtime(true).mt_rand(0, 10000));
+        return (float)(microtime(true).mt_rand(0, 10000));
     }
 
     /**

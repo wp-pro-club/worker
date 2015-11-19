@@ -82,8 +82,8 @@ class MWP_EventListener_MasterRequest_SetErrorHandler extends Monolog_Handler_Ab
     {
         $request = $this->requestStack->getMasterRequest();
 
-        // Everything below ERROR is recoverable, so we can log it.
-        if ($record['level'] < Monolog_Logger::ERROR) {
+        // Everything below CRITICAL is recoverable, so we can log it.
+        if ($record['level'] < Monolog_Logger::CRITICAL) {
             if ($this->logErrors) {
                 $this->errors[] = $record;
             }
@@ -133,8 +133,8 @@ class MWP_EventListener_MasterRequest_SetErrorHandler extends Monolog_Handler_Ab
         }
 
         $this->logger->pushHandler($this);
-        $this->errorHandler->registerFatalHandler(null, $this->reservedMemorySize);
-        $this->errorHandler->registerExceptionHandler();
+        $this->errorHandler->registerFatalHandler(Monolog_Psr_LogLevel::ALERT, $this->reservedMemorySize);
+        $this->errorHandler->registerExceptionHandler(Monolog_Psr_LogLevel::CRITICAL);
 
         if ($this->logErrors) {
             error_reporting(E_ALL);

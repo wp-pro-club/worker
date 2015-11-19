@@ -407,13 +407,11 @@ function mwp_is_shell_available()
         return false;
     }
 
-    if (extension_loaded('suhosin') && $suhosin = ini_get('suhosin.executor.func.blacklist')) {
-        $suhosin   = explode(',', $suhosin);
-        $blacklist = array_map('trim', $suhosin);
-        $blacklist = array_map('strtolower', $blacklist);
-        if (in_array('proc_open', $blacklist)) {
-            return false;
-        }
+    $neededFunction   = array('proc_get_status', 'proc_open');
+    $disabledFunction = mwp_get_disabled_functions();
+
+    if (count(array_diff($neededFunction, $disabledFunction)) != count($neededFunction)) {
+        return false;
     }
 
     if (!mwp_is_nio_shell_available()) {

@@ -261,7 +261,6 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
             if ($logStart && time() - $logStart > 172800) {
                 // delete log file and disable logging
                 @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
-                $this->getWordPressContext()->optionDelete('mwp_debug_enable');
                 $parameters = $this->getWordPressContext()->optionGet('mwp_container_parameters');
 
                 $fileLogging = null;
@@ -284,7 +283,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         }
 
         if ($gelfLogging) {
-            $publisher  = new Gelf_Publisher($this->getParameter('gelf_server'), $this->getParameter('gelf_port') ? $this->getParameter('gelf_port') : Gelf_Publisher::GRAYLOG2_DEFAULT_PORT);
+            $publisher  = $this->getGelfPublisher();
             $handlers[] = new Monolog_Handler_LegacyGelfHandler($publisher);
         }
 
@@ -301,10 +300,11 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
                 array(new MWP_Monolog_Processor_TimeUsageProcessor(), 'callback'),
                 array(new MWP_Monolog_Processor_ExceptionProcessor(), 'callback'),
                 array(new MWP_Monolog_Processor_ProcessProcessor(), 'callback'),
+                array(new MWP_Monolog_Processor_RequestIdProcessor($this->getParameter('request_id')), 'callback'),
             );
-        } else {
-            $handlers[] = new Monolog_Handler_NullHandler();
         }
+        // Always push this handler, because Monolog attaches an STDERR handler if there's no other present.
+        $handlers[] = new Monolog_Handler_NullHandler(1000);
 
         $logger = new Monolog_Logger('worker', $handlers, $processors);
 
@@ -367,13 +367,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
      */
     protected function createErrorLogger()
     {
-        $processors = array(
-            array(new Monolog_Processor_PsrLogMessageProcessor(), 'callback'),
-        );
-
-        $logger = new Monolog_Logger('worker.error', array(), $processors);
-
-        return $logger;
+        return $this->getLogger();
     }
 
     /**
@@ -406,5 +400,14 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
     protected function createMigration()
     {
         return new MWP_Migration_Migration($this->getWordPressContext());
+    }
+
+    protected function createGelfPublisher()
+    {
+        $server       = $this->getParameter('gelf_server');
+        $port         = $this->getParameter('gelf_port');
+        $fallbackPort = $this->getParameter('gelf_port_fallback');
+
+        return new Gelf_Publisher($server, $port, $fallbackPort);
     }
 }

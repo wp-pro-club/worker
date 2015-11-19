@@ -45,5 +45,7 @@ class MWP_Monolog_Handler_JsonMessageHandler extends Monolog_Handler_AbstractHan
         @ob_start();
         echo "\n", str_pad(json_encode($message), $this->padLength, self::PAD_CHARACTER), "\n";
         @ob_end_flush();
+
+        return false;
     }
 }

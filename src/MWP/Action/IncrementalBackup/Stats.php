@@ -34,6 +34,7 @@ class MWP_Action_IncrementalBackup_Stats extends MWP_Action_IncrementalBackup_Ab
         $statistics['published_pages']   = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='page' AND post_status='publish'");
         $statistics['uploads']           = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='attachment'");
         $statistics['comments']          = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->comments}");
+        $statistics['comments_approved'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->comments} WHERE comment_approved = 1");
         $latestPost                      = $wpdb->get_row("SELECT * FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish' ORDER BY ID DESC LIMIT 1");
         $statistics['latest_post_title'] = isset($latestPost->post_title) ? $latestPost->post_title : '';
         $statistics['latest_post_url']   = sprintf("%s?p=%d", get_site_url(), $latestPost->ID);
@@ -78,7 +79,7 @@ class MWP_Action_IncrementalBackup_Stats extends MWP_Action_IncrementalBackup_Ab
             if (in_array($file, $ignore)) {
                 continue;
             }
-            if (is_dir(rtrim($path, '/').'/'.$file)) {
+            if (is_dir(rtrim($path, '/').'/'.$file) && !is_link(rtrim($path, '/').'/'.$file)) {
                 $size += $this->getFileCount(rtrim($path, '/').'/'.$file);
             } else {
                 $size++;
