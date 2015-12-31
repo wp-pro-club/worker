@@ -28,7 +28,7 @@ class MWP_WordPress_Provider_Plugin implements MWP_WordPress_Provider_Interface
         $this->context = $context;
     }
 
-    public function fetch()
+    public function fetch(array $options = array())
     {
         $regularPlugins = $this->context->getPlugins();
         $mustUsePlugins = $this->context->getMustUsePlugins();
@@ -43,6 +43,10 @@ class MWP_WordPress_Provider_Plugin implements MWP_WordPress_Provider_Interface
             'author'      => 'Author',
             'authorUri'   => 'AuthorURI',
         );
+
+        if (empty($options['fetchDescription'])) {
+            unset($pluginInfo['description']);
+        }
 
         foreach ($regularPlugins as $basename => $details) {
             $plugin = array(

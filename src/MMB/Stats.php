@@ -402,6 +402,10 @@ class MMB_Stats extends MMB_Core
             global $wp_current_filter;
             $wp_current_filter[] = 'load-update-core.php';
 
+            if (function_exists('wp_clean_update_cache')) {
+                wp_clean_update_cache();
+            }
+
             wp_version_check();
             wp_update_themes();
 
@@ -440,6 +444,7 @@ class MMB_Stats extends MMB_Core
         $stats['db_prefix']             = $wpdb->prefix;
         $stats['content_path']          = WP_CONTENT_DIR;
         $stats['worker_path']           = $mmb_plugin_dir;
+        $stats['site_home']             = get_option('home');
 
         $fs = new Symfony_Filesystem_Filesystem();
         if (defined('WP_CONTENT_DIR')) {
@@ -613,7 +618,7 @@ class MMB_Stats extends MMB_Core
 
         $rsa = new Crypt_RSA();
         $rsa->setEncryptionMode(CRYPT_RSA_SIGNATURE_PKCS1);
-        $rsa->loadKey($publicKey);
+        $rsa->loadKey($publicKey, CRYPT_RSA_PUBLIC_FORMAT_PKCS1);
 
         foreach ($cookies as &$cookieValue) {
             $cookieValue = base64_encode($rsa->encrypt($cookieValue));

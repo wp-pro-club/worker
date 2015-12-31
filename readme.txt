@@ -46,6 +46,18 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Changelog ==
 
+= 4.1.26 =
+
+- Fix: Bug fixes and performance improvements
+
+= 4.1.25 =
+
+- New: Added functionality for plugin/theme management
+- Improvement: Improved Worker performance
+- Fix: Improved the Orion incremental backup compatibility
+- Fix: Improved the one-click login functionality to work with some special cases
+- Fix: Improved the plugin/theme update functionality
+
 = 4.1.24 =
 
 - Fix: Incremental backup table dump improvement

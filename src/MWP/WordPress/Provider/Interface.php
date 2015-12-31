@@ -10,5 +10,5 @@
 
 interface MWP_WordPress_Provider_Interface
 {
-    public function fetch();
+    public function fetch(array $options = array());
 }

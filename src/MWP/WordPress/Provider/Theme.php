@@ -23,18 +23,19 @@ class MWP_WordPress_Provider_Theme implements MWP_WordPress_Provider_Interface
         $this->context = $context;
     }
 
-    public function fetch()
+    public function fetch(array $options = array())
     {
-        $rawThemes = $this->context->getThemes();
-        $themeMap  = array();
-        $themes    = array();
+        $rawThemes       = $this->context->getThemes();
+        $currentTheme    = $this->context->getCurrentTheme();
+        $activeThemeSlug = $currentTheme['Stylesheet'];
+        $themes          = array();
 
         $themeInfo = array(
-            'name'        => 'Name',
+            'name'    => 'Name',
             // Absolute path to theme directory.
-            'root'        => 'Theme Root',
+            'root'    => 'Theme Root',
             // Absolute URL to theme directory.
-            'rootUri'     => 'Theme Root URI',
+            'rootUri' => 'Theme Root URI',
 
             'version'     => 'Version',
             'description' => 'Description',
@@ -44,49 +45,39 @@ class MWP_WordPress_Provider_Theme implements MWP_WordPress_Provider_Interface
             'parent'      => 'Parent Theme',
         );
 
+        if (empty($options['fetchDescription'])) {
+            unset($themeInfo['description']);
+        }
+
         foreach ($rawThemes as $rawTheme) {
             $theme = array(
                 // Theme directory, followed by slash and slug, to keep it consistent with plugin info; ie. "twentytwelve/twentytwelve".
                 'basename' => $rawTheme['Template'].'/'.$rawTheme['Stylesheet'],
                 // A.k.a. "stylesheet", for some reason. This is the theme identifier; ie. "twentytwelve".
                 'slug'     => $rawTheme['Stylesheet'],
+                'children' => array(),
             );
 
             foreach ($themeInfo as $property => $info) {
                 $theme[$property] = !empty($rawTheme[$info]) ? $rawTheme[$info] : null;
             }
 
-            $themes[]                 = $theme;
-            $themeMap[$theme['name']] = $theme;
+            // Check if this is the active theme
+            $theme['active'] = ($theme['slug'] === $activeThemeSlug);
+
+            $themes[$theme['name']] = $theme;
         }
 
-        // Link parents and children.
-        foreach ($themes as $theme) {
-            if ($theme['parent'] !== null) {
-                $theme['parent']               = $themeMap[$theme['parent']];
-                $theme['parent']['children'][] = $theme['basename'];
-            }
-        }
-
-        $this->markInheritedThemes($themes);
-
-        return $themes;
-    }
-
-    /**
-     * Marks inherited themes as such.
-     *
-     * @param $themes array[]
-     */
-    private function markInheritedThemes(&$themes)
-    {
-        foreach ($themes as $theme) {
-            if ($theme['status'] !== self::STATUS_ACTIVE) {
+        foreach ($themes as &$theme) {
+            if (empty($theme['parent']) || empty($themes[$theme['parent']])) {
                 continue;
             }
-            while ($parent = $theme['parent']) {
-                $parent->status = self::STATUS_INHERITED;
-            }
+
+            $themes[$theme['parent']]['children'][] = $theme['slug'];
+            $theme['parent']                        = $themes[$theme['parent']]['slug'];
         }
+
+        return array_values($themes);
     }
 }
+

@@ -16,7 +16,7 @@ class MWP_Crypter_PhpSecLibCrypter implements MWP_Crypter_Interface
 
         $rsa = new Crypt_RSA();
         $rsa->setEncryptionMode(CRYPT_RSA_SIGNATURE_PKCS1);
-        $rsa->loadKey($publicKey);
+        $rsa->loadKey($publicKey, CRYPT_RSA_PUBLIC_FORMAT_PKCS1);
 
         $errorCatcher = new MWP_Debug_ErrorCatcher();
         $errorCatcher->register();
@@ -38,7 +38,7 @@ class MWP_Crypter_PhpSecLibCrypter implements MWP_Crypter_Interface
 
         $rsa = new Crypt_RSA();
         $rsa->setEncryptionMode(CRYPT_RSA_SIGNATURE_PKCS1);
-        $rsa->loadKey($publicKey);
+        $rsa->loadKey($publicKey, CRYPT_RSA_PUBLIC_FORMAT_PKCS1);
 
         $errorCatcher = new MWP_Debug_ErrorCatcher();
         $errorCatcher->register();

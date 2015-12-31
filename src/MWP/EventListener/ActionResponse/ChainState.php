@@ -15,13 +15,13 @@ class MWP_EventListener_ActionResponse_ChainState implements Symfony_EventDispat
 
     public function __construct(MWP_ServiceContainer_Interface $container)
     {
-        $this->container;
+        $this->container = $container;
     }
 
     public static function getSubscribedEvents()
     {
         return array(
-            MWP_Event_Events::ACTION_RESPONSE => array('onActionResponse', -500),
+            MWP_Event_Events::ACTION_RESPONSE => array('onActionResponse', 200),
         );
     }
 
@@ -29,15 +29,16 @@ class MWP_EventListener_ActionResponse_ChainState implements Symfony_EventDispat
     {
         $rawData = $event->getRequest()->getData();
 
-        if (empty($rawData['stateParams'])) {
+        if (empty($rawData['stateParameters'])) {
             return;
         }
 
         $stateAction = new MWP_Action_GetState();
         $stateAction->setContainer($this->container);
-        $stateData = $stateAction->execute($rawData['stateParams']);
+        $stateData = $stateAction->execute($rawData['stateParameters']);
 
         $actionData          = $event->getData();
         $actionData['state'] = $stateData;
+        $event->setData($actionData);
     }
 }

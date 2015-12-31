@@ -34,7 +34,9 @@ class MWP_IncrementalBackup_Database_PdoConnection implements MWP_IncrementalBac
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         );
 
-        $this->connection = new PDO(self::getDsn($this->configuration), $this->configuration->getUsername(), $this->configuration->getPassword(), $options);
+        // Mute the constructor since this error doesn't get thrown as an exception, but as a PHP warning:
+        // Warning:  PDO::__construct(): The server requested authentication method unknown to the client [mysql_old_password]
+        $this->connection = @new PDO(self::getDsn($this->configuration), $this->configuration->getUsername(), $this->configuration->getPassword(), $options);
     }
 
     /**

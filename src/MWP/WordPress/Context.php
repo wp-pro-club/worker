@@ -706,9 +706,20 @@ class MWP_WordPress_Context
         setcookie($name, $value, $expire, $this->getConstant('SITECOOKIEPATH'), $this->getConstant('COOKIE_DOMAIN'), $this->isSsl(), true);
     }
 
+    /**
+     * @return bool
+     */
     public function isSsl()
     {
-        return is_ssl();
+        return (bool)is_ssl();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSslAdmin()
+    {
+        return $this->isSsl() || force_ssl_admin();
     }
 
     public function removeAction($tag, $function, $priority = 10)

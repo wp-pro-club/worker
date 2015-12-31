@@ -44,12 +44,44 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
     {
         $request = $event->getRequest();
 
-        if (empty($request->query['auto_login']) || empty($request->query['signature']) || empty($request->query['message_id']) || !array_key_exists('mwp_goto', $request->query)) {
+        if ($request->getMethod() !== 'GET') {
             return;
         }
 
         if (!$this->configuration->getPublicKey()) {
             // Site is not connected to a master instance.
+            return;
+        }
+
+        if (empty($request->query['auto_login']) || empty($request->query['signature']) || empty($request->query['message_id']) || !array_key_exists('mwp_goto', $request->query)) {
+            return;
+        }
+
+        // Some sites will redirect from HTTP to HTTPS or from non-www to www URL too late; so handle that case here.
+        $siteUrl           = $this->context->getSiteUrl();
+        $isWww             = substr($request->server['HTTP_HOST'], 0, 4) === 'www.';
+        $isHttps           = $this->context->isSsl();
+        $shouldWww         = preg_match('{^https?://www\.}', $siteUrl);
+        $shouldHttps       = $this->context->isSslAdmin();
+        $alreadyRedirected = !empty($request->query['auto_login_fixed']);
+        if (
+            (
+                (!$isHttps !== $shouldHttps)
+                || (!$isWww !== $shouldWww)
+            )
+            && !$alreadyRedirected
+        ) {
+            $prefix = sprintf('%s://%s', $shouldHttps ? 'https' : 'http', $shouldWww ? 'www.' : '');
+            // Replace the scheme and the www. prefix and remove the request URI.
+            $redirectUri = $prefix.preg_replace('{^https?://(?:www\.)?([^/]+).*$}', '$1', $siteUrl);
+            // Attach the current request URI to a fixed site URL.
+            $redirectUri = $redirectUri.$request->server['REQUEST_URI'];
+            // Prevent infinite loop with the added parameter.
+            $redirectUri = $this->modifyUriParameters($redirectUri, array('auto_login_fixed' => 'yes'));
+            $event->setResponse(new MWP_Http_RedirectResponse($redirectUri, 302, array(
+                'P3P' => 'CP="CAO PSA OUR"',
+            )));
+
             return;
         }
 
@@ -100,7 +132,7 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $this->context->setAuthCookie($user);
 
         $adminUri    = rtrim($this->context->getAdminUrl(''), '/').'/'.$where;
-        $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect'));
+        $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect', 'auto_login_fixed'));
 
         $this->context->setCookie($this->getCookieName(), '1');
 
@@ -128,7 +160,7 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         }
     }
 
-    private function modifyUriParameters($uri, array $addParameters, array $omitParameters)
+    private function modifyUriParameters($uri, array $addParameters, array $omitParameters = array())
     {
         $currentUrl = parse_url($uri) + array('port' => '', 'path' => '', 'query' => '');
         parse_str($currentUrl['query'], $query);

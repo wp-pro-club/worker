@@ -16,7 +16,7 @@ class MWP_Signer_PhpSecLibSigner implements MWP_Signer_Interface
 
         $rsa = new Crypt_RSA();
         $rsa->setSignatureMode(CRYPT_RSA_SIGNATURE_PKCS1);
-        $rsa->loadKey($publicKey);
+        $rsa->loadKey($publicKey, CRYPT_RSA_PUBLIC_FORMAT_PKCS1);
         $errorCatcher = new MWP_Debug_ErrorCatcher();
         $errorCatcher->register();
         $verify       = $rsa->verify($data, $signature);

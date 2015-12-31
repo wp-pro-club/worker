@@ -134,13 +134,14 @@ class MWP_Action_GetState extends MWP_Action_Abstract
     protected function getPlugins(array $options = array())
     {
         $options += array(
+            'fetchDescription'     => false,
             'fetchAutoUpdate'      => true,
-            'fetchAvailableUpdate' => true,
+            'fetchAvailableUpdate' => false,
             'fetchActivatedAt'     => true,
         );
 
         $pluginProvider    = $this->container->getPluginProvider();
-        $plugins           = $pluginProvider->fetch();
+        $plugins           = $pluginProvider->fetch($options);
         $autoUpdateManager = $this->container->getAutoUpdateManager();
 
         if ($options['fetchAutoUpdate']) {
@@ -175,12 +176,13 @@ class MWP_Action_GetState extends MWP_Action_Abstract
     protected function getThemes(array $options = array())
     {
         $options += array(
+            'fetchDescription'     => false,
             'fetchAutoUpdate'      => true,
-            'fetchAvailableUpdate' => true,
+            'fetchAvailableUpdate' => false,
         );
 
         $themeProvider     = $this->container->getThemeProvider();
-        $themes            = $themeProvider->fetch();
+        $themes            = $themeProvider->fetch($options);
         $autoUpdateManager = $this->container->getAutoUpdateManager();
 
         if ($options['fetchAutoUpdate']) {
