@@ -398,6 +398,10 @@ class MMB_Stats extends MMB_Core
         $stats = $this->mmb_parse_action_params('pre_init_stats', $params, $this);
         extract($params);
 
+        if (isset($params['doAdminInit'])) {
+            do_action('admin_init');
+        }
+
         if ($params['refresh'] == 'transient') {
             global $wp_current_filter;
             $wp_current_filter[] = 'load-update-core.php';
@@ -443,6 +447,7 @@ class MMB_Stats extends MMB_Core
         $stats['db_name']               = $this->get_active_db();
         $stats['db_prefix']             = $wpdb->prefix;
         $stats['content_path']          = WP_CONTENT_DIR;
+        $stats['absolute_path']         = ABSPATH;
         $stats['worker_path']           = $mmb_plugin_dir;
         $stats['site_home']             = get_option('home');
 
@@ -459,10 +464,8 @@ class MMB_Stats extends MMB_Core
             $stats['mu_plugin_relative_path'] = $fs->makePathRelative(WPMU_PLUGIN_DIR, ABSPATH);
         }
 
-        if (defined('UPLOADS')) {
-            // Uploads is already relative
-            $stats['uploads_relative_path'] = UPLOADS;
-        }
+        $uploadDirArray                 = wp_upload_dir();
+        $stats['uploads_relative_path'] = $fs->makePathRelative($uploadDirArray['basedir'], ABSPATH);
 
         if (!function_exists('get_filesystem_method')) {
             include_once ABSPATH.'wp-admin/includes/file.php';
@@ -614,7 +617,9 @@ class MMB_Stats extends MMB_Core
             return $cookies;
         }
 
-        require_once dirname(__FILE__).'/../../src/PHPSecLib/Crypt/RSA.php';
+        if (!class_exists('Crypt_RSA', false)) {
+            require_once dirname(__FILE__).'/../../src/PHPSecLib/Crypt/RSA.php';
+        }
 
         $rsa = new Crypt_RSA();
         $rsa->setEncryptionMode(CRYPT_RSA_SIGNATURE_PKCS1);

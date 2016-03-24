@@ -284,7 +284,7 @@ class MMB_Installer extends MMB_Core
             include_once ABSPATH.'/wp-admin/includes/update.php';
         }
 
-        @wp_version_check();
+        $this->doCoreUpdateCheck();
 
         $current_update = false;
         ob_end_flush();
@@ -467,6 +467,7 @@ class MMB_Installer extends MMB_Core
             );
         }
 
+        $this->doPluginUpdateCheck();
         $current  = $this->mmb_get_transient('update_plugins');
         $versions = array();
         $return = array();
@@ -488,7 +489,8 @@ class MMB_Installer extends MMB_Core
                 include_once ABSPATH.'wp-includes/update.php';
             }
 
-            @wp_update_plugins();
+            $this->doPluginUpdateCheck();
+
             $current = $this->mmb_get_transient('update_plugins');
             if (!empty($result)) {
                 foreach ($result as $plugin_slug => $plugin_info) {
@@ -526,6 +528,7 @@ class MMB_Installer extends MMB_Core
             );
         }
 
+        $this->doThemeUpdateCheck();
         $current  = $this->mmb_get_transient('update_themes');
         $versions = array();
         if (!empty($current)) {
@@ -544,7 +547,7 @@ class MMB_Installer extends MMB_Core
                 include_once ABSPATH.'wp-includes/update.php';
             }
 
-            @wp_update_themes();
+            $this->doThemeUpdateCheck();
             $current = $this->mmb_get_transient('update_themes');
             $return  = array();
             if (!empty($result)) {

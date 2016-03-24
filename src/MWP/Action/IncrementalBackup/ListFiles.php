@@ -179,6 +179,7 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
             $fileResult['owner']       = $file->getOwner();
             $fileResult['group']       = $file->getGroup();
             $fileResult['permissions'] = $file->getPerms();
+            $fileResult['mTime']       = $file->getMTime();
             $fileResult['exists']      = true;
             if ($file->isLink()) {
                 $fileResult['linkTarget'] = $file->getLinkTarget();

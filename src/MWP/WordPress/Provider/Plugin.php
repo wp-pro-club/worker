@@ -60,7 +60,12 @@ class MWP_WordPress_Provider_Plugin implements MWP_WordPress_Provider_Interface
             );
 
             foreach ($pluginInfo as $property => $info) {
-                $plugin[$property] = !empty($details[$info]) ? $details[$info] : null;
+                if (empty($details[$info])) {
+                    $plugin[$property] = null;
+                    continue;
+                }
+
+                $plugin[$property] = $this->context->seemsUtf8($details[$info]) ? $details[$info] : utf8_encode($details[$info]);
             }
 
             $plugin['status'] = $this->getPluginStatus($basename);

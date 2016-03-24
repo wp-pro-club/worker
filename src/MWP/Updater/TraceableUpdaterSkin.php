@@ -43,7 +43,14 @@ class MWP_Updater_TraceableUpdaterSkin
             $this->options['context'] = $context;
         }
 
+        // file.php and template.php are documented to be required; the rest are there to match
+        // the list in the MMB_Installer class.
         require_once ABSPATH.'wp-admin/includes/file.php';
+        require_once ABSPATH.'wp-admin/includes/plugin.php';
+        require_once ABSPATH.'wp-admin/includes/theme.php';
+        require_once ABSPATH.'wp-admin/includes/misc.php';
+        require_once ABSPATH.'wp-admin/includes/template.php';
+        require_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
         // This will output a credentials form in event of failure; we don't want that, so just hide with a buffer.
         ob_start();
         /** @handled function */

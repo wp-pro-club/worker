@@ -286,7 +286,12 @@ EOF;
      */
     public function install()
     {
-        delete_option('mwp_recovering');
+        update_option('mwp_recovering', '');
+        update_option('mwp_incremental_update_active', '');
+        update_option('mwp_core_autoupdate', '');
+        update_option('mwp_container_parameters', array());
+        update_option('mwp_container_site_parameters', array());
+        update_option('mwp_maintenace_mode', array());
         mwp_container()->getMigration()->migrate();
         try {
             $this->registerMustUse('0-worker.php', $this->buildLoaderContent('worker/init.php'));
@@ -311,20 +316,20 @@ EOF;
                             update_blog_option($details->blog_id, 'mmb_network_admin_install', -1);
                         }
 
-                        delete_blog_option($details->blog_id, '_worker_nossl_key');
-                        delete_blog_option($details->blog_id, '_worker_public_key');
+                        update_blog_option($details->blog_id, '_worker_nossl_key', '');
+                        update_blog_option($details->blog_id, '_worker_public_key', '');
                         delete_blog_option($details->blog_id, '_action_message_id');
                     }
                 } else {
                     update_option('mmb_network_admin_install', -1);
-                    delete_option('_worker_nossl_key');
-                    delete_option('_worker_public_key');
+                    update_option('_worker_nossl_key', '');
+                    update_option('_worker_public_key', '');
                     delete_option('_action_message_id');
                 }
             }
         } else {
-            delete_option('_worker_nossl_key');
-            delete_option('_worker_public_key');
+            update_option('_worker_nossl_key', '');
+            update_option('_worker_public_key', '');
             delete_option('_action_message_id');
         }
 

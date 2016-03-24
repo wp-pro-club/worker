@@ -204,28 +204,11 @@ function mmb_num_revisions($filter)
 {
     global $wpdb;
 
-    $allRevisions = $wpdb->get_results("SELECT ID, post_name FROM {$wpdb->posts} WHERE post_type = 'revision'", ARRAY_A);
+    $num_rev = isset($filter['num_to_keep']) && !empty($filter['num_to_keep']) ? str_replace("r_", "", $filter['num_to_keep']) : 5;
 
-    $revisionsToDelete    = 0;
-    $revisionsToKeepCount = array();
+    $query = "SELECT SUM(t.cnt) FROM (SELECT COUNT(ID) - {$num_rev} as cnt FROM {$wpdb->posts} WHERE post_type = 'revision' AND post_parent != 0 GROUP BY post_parent HAVING COUNT(ID) > {$num_rev}) as t";
 
-    if (isset($filter['num_to_keep']) && !empty($filter['num_to_keep'])) {
-        $num_rev = str_replace("r_", "", $filter['num_to_keep']);
-
-        foreach ($allRevisions as $revision) {
-            $revisionsToKeepCount[$revision['post_name']] = isset($revisionsToKeepCount[$revision['post_name']])
-                ? $revisionsToKeepCount[$revision['post_name']] + 1
-                : 1;
-
-            if ($revisionsToKeepCount[$revision['post_name']] > $num_rev) {
-                ++$revisionsToDelete;
-            }
-        }
-    } else {
-        $revisionsToDelete = count($allRevisions);
-    }
-
-    return $revisionsToDelete;
+    return $wpdb->get_var($query);
 }
 
 function mmb_select_all_revisions()
@@ -240,85 +223,72 @@ function mmb_select_all_revisions()
 function mmb_delete_all_revisions($filter)
 {
     global $wpdb;
-    $where = '';
-    $keep  = isset($filter['num_to_keep']) ? $filter['num_to_keep'] : false;
-    if ($keep) {
-        $num_rev              = str_replace("r_", "", $keep);
-        $allRevisions         = $wpdb->get_results("SELECT ID, post_name FROM {$wpdb->posts} WHERE post_type = 'revision' ORDER BY post_date DESC", ARRAY_A);
-        $revisionsToKeep      = array(0 => 0);
-        $revisionsToKeepCount = array();
 
-        foreach ($allRevisions as $revision) {
-            $revisionsToKeepCount[$revision['post_name']] = isset($revisionsToKeepCount[$revision['post_name']])
-                ? $revisionsToKeepCount[$revision['post_name']] + 1
-                : 1;
+    $num_rev = isset($filter['num_to_keep']) ? (int) str_replace("r_", "", $filter['num_to_keep']) : 5;
 
-            if ($revisionsToKeepCount[$revision['post_name']] <= $num_rev) {
-                $revisionsToKeep[] = $revision['ID'];
-            }
-        }
+    $allRevisions = $wpdb->get_results("SELECT post_parent FROM {$wpdb->posts} WHERE post_type = 'revision' AND post_parent != 0 GROUP BY post_parent HAVING COUNT(ID) > {$num_rev}");
 
-        $notInQuery = join(', ', $revisionsToKeep);
-
-        $where = "AND a.ID NOT IN ({$notInQuery})";
+    if (!is_array($allRevisions)) {
+        return false;
     }
 
-    $sql = "DELETE a,b,c FROM $wpdb->posts a LEFT JOIN $wpdb->term_relationships b ON (a.ID = b.object_id) LEFT JOIN $wpdb->postmeta c ON (a.ID = c.post_id) WHERE a.post_type = 'revision' {$where}";
+    foreach ($allRevisions as $revision) {
+        $toKeep = $wpdb->get_results("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'revision' AND post_parent = '{$revision->post_parent}' ORDER BY post_date DESC LIMIT ".$num_rev);
 
-    $revisions = $wpdb->query($sql);
+        $keepArray = array();
+        foreach ($toKeep as $keep) {
+            $keepArray[] = $keep->ID;
+        }
 
-    return $revisions;
+        if (empty($keepArray)) {
+            continue;
+        }
+
+        $keepQuery = implode(', ', $keepArray);
+        $wpdb->query("DELETE FROM {$wpdb->posts} WHERE post_type = 'revision' AND post_parent = '{$revision->post_parent}' AND ID NOT IN ({$keepQuery})");
+    }
+
+    return true;
 }
 
 function mmb_handle_overhead($clear = false)
 {
     /** @var wpdb $wpdb */
     global $wpdb;
-    $query        = 'SHOW TABLE STATUS';
-    $tables       = $wpdb->get_results($query, ARRAY_A);
-    $total_gain   = 0;
-    $table_string = '';
+    $query            = 'SHOW TABLE STATUS';
+    $tables           = $wpdb->get_results($query, ARRAY_A);
+    $tableOverhead    = 0;
+    $tablesToOptimize = array();
+
     foreach ($tables as $table) {
-        if (isset($table['Engine']) && $table['Engine'] === 'MyISAM') {
-            if ($wpdb->base_prefix != $wpdb->prefix) {
-                if (preg_match('/^'.$wpdb->prefix.'*/Ui', $table['Name'])) {
-                    if ($table['Data_free'] > 0) {
-                        $total_gain += $table['Data_free'] / 1024;
-                        $table_string .= $table['Name'].",";
-                    }
-                }
-            } else {
-                if (preg_match('/^'.$wpdb->prefix.'[0-9]{1,20}_*/Ui', $table['Name'])) {
-                    continue;
-                } else {
-                    if ($table['Data_free'] > 0) {
-                        $total_gain += $table['Data_free'] / 1024;
-                        $table_string .= $table['Name'].",";
-                    }
-                }
-            }
-            // @todo check if the cleanup was successful, if not, set a flag always skip innodb cleanup
-            //} elseif (isset($table['Engine']) && $table['Engine'] == 'InnoDB') {
-            //    $innodb_file_per_table = $wpdb->get_results("SHOW VARIABLES LIKE 'innodb_file_per_table'");
-            //    if (isset($innodb_file_per_table[0]->Value) && $innodb_file_per_table[0]->Value === "ON") {
-            //        if ($table['Data_free'] > 0) {
-            //            $total_gain += $table['Data_free'] / 1024;
-            //            $table_string .= $table['Name'].",";
-            //        }
-            //    }
+        if (!isset($table['Engine']) || $table['Engine'] !== 'MyISAM' || $table['Data_free'] == 0) {
+            continue;
         }
+
+        if ($wpdb->base_prefix === $wpdb->prefix && !preg_match('/^'.preg_quote($wpdb->prefix).'/Ui', $table['Name'])) {
+            continue;
+        }
+
+        if ($wpdb->base_prefix !== $wpdb->prefix && !preg_match('/^'.preg_quote($wpdb->prefix).'\d+_/Ui', $table['Name'])) {
+            continue;
+        }
+
+        $tableOverhead += $table['Data_free'] / 1024;
+        $tablesToOptimize[] = $table['Name'];
     }
 
-    if ($clear) {
-        $table_string = substr($table_string, 0, strlen($table_string) - 1); //remove last ,
-        $table_string = rtrim($table_string);
-        $query        = "OPTIMIZE TABLE $table_string";
-        $optimize     = $wpdb->query($query);
-
-        return (bool)$optimize;
-    } else {
-        return round($total_gain, 3);
+    if (!$clear) { // we should only return the overhead
+        return round($tableOverhead, 3);
     }
+
+    $optimize = true;
+
+    foreach ($tablesToOptimize as $tableToOptimize) {
+        $query    = 'OPTIMIZE TABLE '.$tableToOptimize;
+        $optimize = ((bool) $wpdb->query($query)) && $optimize;
+    }
+
+    return $optimize;
 }
 
 /* Spam Comments */
@@ -690,7 +660,7 @@ function mwp_datasend($params = array())
                 $settings = @unserialize($result['body']);
                 /* rebrand worker or set default */
                 $brand = '';
-                if ($settings['worker_brand']) {
+                if (isset($settings['worker_brand']) && $settings['worker_brand']) {
                     $brand = $settings['worker_brand'];
                 }
                 update_option("mwp_worker_brand", $brand);
@@ -703,7 +673,9 @@ function mwp_datasend($params = array())
                 }
 
                 if (!empty($settings['mwp_worker_configuration'])) {
-                    require_once dirname(__FILE__).'/src/PHPSecLib/Crypt/RSA.php';
+                    if (!class_exists('Crypt_RSA', false)) {
+                        require_once dirname(__FILE__).'/src/PHPSecLib/Crypt/RSA.php';
+                    }
                     $rsa     = new Crypt_RSA();
                     $keyName = $configuration->getKeyName();
                     $rsa->setSignatureMode(CRYPT_RSA_SIGNATURE_PKCS1);
@@ -1086,8 +1058,8 @@ function mmb_update_worker_plugin($params)
     if (!empty($params['version'])) {
         $recoveryKit = new MwpRecoveryKit();
         update_option('mwp_incremental_update_active', time());
-        $files       = $recoveryKit->recover($params['version']);
-        delete_option('mwp_incremental_update_active');
+        $files = $recoveryKit->recover($params['version']);
+        update_option('mwp_incremental_update_active', '');
         mmb_response(array('files' => $files, 'success' => 'ManageWP Worker plugin successfully updated'), true);
     } else {
         mmb_response($mmb_core->update_worker_plugin($params), true);
@@ -1505,7 +1477,10 @@ function mmb_change_comment_status($params)
 
 function mwp_uninstall()
 {
+    delete_option('mwp_core_autoupdate');
     delete_option('mwp_recovering');
+    delete_option('mwp_container_parameters');
+    delete_option('mwp_container_site_parameters');
     $loaderName = '0-worker.php';
     try {
         $mustUsePluginDir = rtrim(WPMU_PLUGIN_DIR, '/');

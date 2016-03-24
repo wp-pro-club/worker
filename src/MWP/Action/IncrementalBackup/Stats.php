@@ -11,6 +11,11 @@
 class MWP_Action_IncrementalBackup_Stats extends MWP_Action_IncrementalBackup_AbstractFiles
 {
 
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
     public function execute(array $params = array())
     {
 
@@ -43,6 +48,7 @@ class MWP_Action_IncrementalBackup_Stats extends MWP_Action_IncrementalBackup_Ab
         $currentTheme                    = $this->container->getWordPressContext()->getCurrentTheme();
         $statistics['active_theme']      = $currentTheme['Name'].' v'.$currentTheme['Version'];
         $statistics['platform']          = strtoupper(substr(PHP_OS, 0, 3));
+        $statistics['external_config']   = ! @file_exists( ABSPATH . 'wp-config.php') && @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) && ! @file_exists( dirname( ABSPATH ) . '/wp-settings.php' );
 
         if (!empty($params['file_count'])) {
             $paths    = !empty($params['file_paths']) ? $params['file_paths'] : array(ABSPATH);

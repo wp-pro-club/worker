@@ -172,9 +172,11 @@ class MMB_Updater
             if ($type == 'plugins') {
                 $pluginOrTheme = plugin_basename($item['path']);
             } else {
-                $pluginOrTheme = $item['name'];
+                $pluginOrTheme = $item['path'];
             }
             $current = get_option('mwp_active_autoupdate_'.$type, array());
+            $current = array_unique($current);
+
             if ($item['action'] === 'on') {
                 $current[] = $pluginOrTheme;
             } else {
@@ -230,6 +232,8 @@ class MMB_Updater
         );
 
         $whitelistedPlugins = get_option('mwp_active_autoupdate_plugins', array());
+        $whitelistedPlugins = array_unique($whitelistedPlugins);
+
         foreach ($allPlugins as $slug => $pluginInfo) {
             if ($slug === 'worker/init.php') {
                 continue;
@@ -269,6 +273,8 @@ class MMB_Updater
         $allThemes = wp_get_themes();
 
         $whitelistedThemes = get_option('mwp_active_autoupdate_themes', array());
+        $whitelistedThemes = array_unique($whitelistedThemes);
+
         foreach ($allThemes as $slug => $themeInfo) {
             /** @var WP_Theme $themeInfo */
             if (!empty($search) && stripos($themeInfo->name, $search) === false) {

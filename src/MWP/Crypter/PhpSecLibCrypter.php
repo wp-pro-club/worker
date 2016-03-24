@@ -57,6 +57,10 @@ class MWP_Crypter_PhpSecLibCrypter implements MWP_Crypter_Interface
 
     private function requireLibrary()
     {
+        if (class_exists('Crypt_RSA', false)) {
+            return;
+        }
+
         require_once dirname(__FILE__).'/../../PHPSecLib/Crypt/RSA.php';
     }
 }

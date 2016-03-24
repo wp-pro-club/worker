@@ -46,6 +46,25 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Changelog ==
 
+= 4.1.29 =
+
+- Improvement: Post revision cleanup is now faster & furiouser (is that even a word?)
+- Improvement: Reduced the number of queries for non-ManageWP requests (e.g. frontpage load) by roughly 80%
+- Fix: Compatibility issue with WPMU DEV plugins that prevented updates from showing up on the ManageWP dashboard
+- Fix: Several connectivity issues caused by non-UTF-8 characters
+- Fix: Admin login bug
+
+= 4.1.28 =
+
+- Fix: Compatibility issue with the wpShopGermany plugin. Ausgezeichnet!
+
+= 4.1.27 =
+
+- Improvement: Due to popular demand, a number of improvements have been made to the backup script, making it more stable.
+- Fix: Plugin/theme updates double-crossing you with a false positive, even though the updates have not been performed.
+- Fix: Database optimization not doing what it is told.
+- Added: A sense of humor to an otherwise boring changelog.
+
 = 4.1.26 =
 
 - Fix: Bug fixes and performance improvements

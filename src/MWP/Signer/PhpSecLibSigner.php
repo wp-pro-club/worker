@@ -33,6 +33,10 @@ class MWP_Signer_PhpSecLibSigner implements MWP_Signer_Interface
 
     private function requireLibrary()
     {
+        if (class_exists('Crypt_RSA', false)) {
+            return;
+        }
+
         require_once dirname(__FILE__).'/../../PHPSecLib/Crypt/RSA.php';
     }
 }

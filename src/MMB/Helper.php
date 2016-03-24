@@ -376,4 +376,52 @@ class MMB_Helper
 
         return $users_authors;
     }
+
+    public function doCoreUpdateCheck()
+    {
+        global $wp_current_filter;
+        $wp_current_filter[] = 'load-update-core.php';
+
+        if (function_exists('wp_clean_update_cache')) {
+            wp_clean_update_cache();
+        }
+
+        wp_version_check();
+
+        array_pop($wp_current_filter);
+
+        do_action('load-plugins.php');
+    }
+
+    public function doPluginUpdateCheck()
+    {
+        global $wp_current_filter;
+        $wp_current_filter[] = 'load-update-core.php';
+
+        if (function_exists('wp_clean_update_cache')) {
+            wp_clean_update_cache();
+        }
+
+        wp_update_plugins();
+
+        array_pop($wp_current_filter);
+
+        do_action('load-plugins.php');
+    }
+
+    public function doThemeUpdateCheck()
+    {
+        global $wp_current_filter;
+        $wp_current_filter[] = 'load-update-core.php';
+
+        if (function_exists('wp_clean_update_cache')) {
+            wp_clean_update_cache();
+        }
+
+        wp_update_themes();
+
+        array_pop($wp_current_filter);
+
+        do_action('load-plugins.php');
+    }
 }

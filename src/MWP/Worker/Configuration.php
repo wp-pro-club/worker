@@ -55,6 +55,6 @@ class MWP_Worker_Configuration
 
     public function deleteSecureKey()
     {
-        $this->context->optionDelete('_worker_nossl_key');
+        $this->context->optionSet('_worker_nossl_key', '');
     }
 }

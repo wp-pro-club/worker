@@ -61,7 +61,7 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $siteUrl           = $this->context->getSiteUrl();
         $isWww             = substr($request->server['HTTP_HOST'], 0, 4) === 'www.';
         $isHttps           = $this->context->isSsl();
-        $shouldWww         = preg_match('{^https?://www\.}', $siteUrl);
+        $shouldWww         = (bool) preg_match('{^https?://www\.}', $siteUrl);
         $shouldHttps       = $this->context->isSslAdmin();
         $alreadyRedirected = !empty($request->query['auto_login_fixed']);
         if (

@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.1.26
+Version: 4.1.29
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -201,6 +201,10 @@ if (!class_exists('MwpRecoveryKit', false)):
      */
     class MwpRecoveryKit
     {
+        const MAX_LOGGED_ERRORS = 5;
+
+        private static $errorLog = array();
+
         private static function requestJson($url)
         {
             $response = wp_remote_get($url, array('timeout' => 60));
@@ -320,6 +324,7 @@ if (!class_exists('MwpRecoveryKit', false)):
 
         public static function recoverFiles($dirName, array $filesAndChecksums, $version)
         {
+            set_error_handler(array(__CLASS__, 'logError'));
             require_once ABSPATH.'wp-admin/includes/file.php';
 
             $options = array();
@@ -365,6 +370,7 @@ if (!class_exists('MwpRecoveryKit', false)):
             $lastError         = null;
             while ($checksum = current($filesAndChecksums)) {
                 if ($retryCount >= $retryUpTo) {
+                    restore_error_handler();
                     throw new Exception($lastError);
                 }
                 $relativePath = key($filesAndChecksums);
@@ -393,6 +399,9 @@ if (!class_exists('MwpRecoveryKit', false)):
                     }
                     $fs->connect();
                     $lastError = 'File saving failed.';
+                    if (count(self::$errorLog)) {
+                        $lastError .= sprintf(" Last %d logged errors:%s", min(self::MAX_LOGGED_ERRORS, count(self::$errorLog)), "\n - ".implode("\n - ", self::$errorLog));
+                    }
                     $retryCount++;
                     continue;
                 }
@@ -404,8 +413,18 @@ if (!class_exists('MwpRecoveryKit', false)):
             }
 
             self::clearUnknownFiles($cachedFilesAndChecksums, $fs);
+            restore_error_handler();
 
             return $recoveredFiles;
+        }
+
+        public static function logError($code, $message, $file = 'Unknown', $line = 0)
+        {
+            self::$errorLog[] = sprintf('Error [%d]: %s in %s on line %d', $code, $message, $file, $line);
+
+            if (count(self::$errorLog) > self::MAX_LOGGED_ERRORS) {
+                array_shift(self::$errorLog);
+            }
         }
 
         private static function shuffleAssoc($array)
@@ -448,7 +467,7 @@ if (!function_exists('mwp_activation_hook')) {
     function mwp_activation_hook()
     {
         if (get_option('mwp_recovering')) {
-            delete_option('mwp_recovering');
+            update_option('mwp_recovering', '');
             // Run the checksum one last time.
             $recoveryKit = new MwpRecoveryKit();
             try {
@@ -476,8 +495,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.26';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2015-12-07 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.29';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2016-03-23 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {
@@ -487,7 +506,7 @@ if (!function_exists('mwp_init')):
 
         if ($incrementalUpdateTime = get_option('mwp_incremental_update_active')) {
             if (time() - $incrementalUpdateTime > 3600) {
-                delete_option('mwp_incremental_update_active');
+                update_option('mwp_incremental_update_active', '');
             } else {
                 return;
             }
@@ -529,7 +548,7 @@ if (!function_exists('mwp_init')):
                     $recoveredFiles = $recoveryKit->recover($GLOBALS['MMB_WORKER_VERSION']);
 
                     // Recovery complete.
-                    delete_option('mwp_recovering');
+                    update_option('mwp_recovering', '');
                     mail('dev@managewp.com', sprintf("ManageWP Worker recovered on %s", get_option('siteurl')), sprintf("%d files successfully recovered in this recovery fork of ManageWP Worker v%s. Filesystem method used was <code>%s</code>.\n\n<pre>%s</pre>", count($recoveredFiles), $GLOBALS['MMB_WORKER_VERSION'], get_filesystem_method(), implode("\n", $recoveredFiles)), 'Content-Type: text/html');
                 } catch (Exception $e) {
                     if ($e->getCode() === 1337) {

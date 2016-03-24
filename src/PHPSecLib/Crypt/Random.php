@@ -154,7 +154,6 @@ if (!function_exists('crypt_random_string')) {
                 serialize($_POST).
                 serialize($_GET).
                 serialize($_COOKIE).
-                serialize($GLOBALS).
                 serialize($_SESSION).
                 serialize($_OLD_SESSION)
             ));

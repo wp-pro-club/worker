@@ -42,6 +42,7 @@ class MWP_Worker_Exception extends Exception
     const IO_EXCEPTION = 10032;
     const BACKUP_DATABASE_INVALID_OUTPUT_METHOD = 10033;
     const PHP_EXTENSION_REQUIRED_CURL = 10034;
+    const JSON_RESPONSE_EXCEPTION = 10035;
 
     const GENERAL_ERROR = 10000;
 

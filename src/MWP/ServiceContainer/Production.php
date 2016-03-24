@@ -272,7 +272,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
 
                 $this->getWordPressContext()->optionSet('mwp_container_parameters', $parameters);
             }
-        } elseif (@file_exists(dirname(__FILE__).'/../../../'.$fileLogging)) {
+        } elseif ($fileLogging && @is_file(dirname(__FILE__).'/../../../'.$fileLogging)) {
             @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
         }
 

@@ -18,7 +18,7 @@ class MWP_Migration_Migration
      * Upon plugin activation this version is persisted to the database.
      * It is also checked against on every master request.
      */
-    const VERSION = 1;
+    const VERSION = 2;
 
     /**
      * @var MWP_WordPress_Context
@@ -33,6 +33,7 @@ class MWP_Migration_Migration
      */
     private static $migrations = array(
         1 => 'migrateBackupFileNames',
+        2 => 'setDefaultOptionValues',
     );
 
     public function __construct(MWP_WordPress_Context $context)
@@ -92,6 +93,41 @@ class MWP_Migration_Migration
         }
 
         $this->releaseLock($lockName);
+    }
+
+    private function setDefaultOptionValues()
+    {
+        if (!$this->context->optionGet('mwp_recovering')) {
+            $this->context->optionSet('mwp_recovering', '');
+        }
+
+        if (!$this->context->optionGet('mwp_incremental_update_active')) {
+            $this->context->optionSet('mwp_incremental_update_active', '');
+        }
+
+        if (!$this->context->optionGet('mwp_core_autoupdate')) {
+            $this->context->optionSet('mwp_core_autoupdate', '');
+        }
+
+        if (!$this->context->optionGet('mwp_container_parameters')) {
+            $this->context->optionSet('mwp_container_parameters', array());
+        }
+
+        if (!$this->context->optionGet('mwp_container_site_parameters')) {
+            $this->context->optionSet('mwp_container_site_parameters', array());
+        }
+
+        if (!$this->context->optionGet('_worker_nossl_key')) {
+            $this->context->optionSet('_worker_nossl_key', '');
+        }
+
+        if (!$this->context->optionGet('_worker_public_key')) {
+            $this->context->optionSet('_worker_public_key', '');
+        }
+
+        if (!$this->context->optionGet('mwp_maintenace_mode')) {
+            $this->context->optionSet('mwp_maintenace_mode', array());
+        }
     }
 
     private function migrateBackupFileNames()

@@ -792,4 +792,14 @@ class MWP_WordPress_Context
     {
         return update_user_meta($userId, $key, $value);
     }
+
+    /**
+     * @param string $str
+     *
+     * @return bool
+     */
+    public function seemsUtf8($str)
+    {
+        return seems_utf8($str);
+    }
 }

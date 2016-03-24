@@ -59,7 +59,12 @@ class MWP_WordPress_Provider_Theme implements MWP_WordPress_Provider_Interface
             );
 
             foreach ($themeInfo as $property => $info) {
-                $theme[$property] = !empty($rawTheme[$info]) ? $rawTheme[$info] : null;
+                if (empty($rawTheme[$info])) {
+                    $theme[$property] = null;
+                    continue;
+                }
+
+                $theme[$property] = $this->context->seemsUtf8($rawTheme[$info]) ? $rawTheme[$info] : utf8_encode($rawTheme[$info]);
             }
 
             // Check if this is the active theme
