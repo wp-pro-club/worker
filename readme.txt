@@ -46,6 +46,13 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Changelog ==
 
+= 4.1.30 =
+
+- Improvement: Hardened the ManageWP Worker recovery mode, which allows it to automatically resync to your ManageWP dashboard after a crash. That's one small step for mankind, one giant leap for Skynet.
+- Improvement: Incorrect syntax used to define plugin and content directories no longer prevents ManageWP Orion from adding these directories to the backup archive.
+- Fix: Updates not showing up on websites with WPMU DEV plugins. Well, technically it's a workaround and not a fix, since the previous fix didn't fix things, but nobody reads these changelogs anyway. Oh you do? Sorry about that, then. /highfive
+- Fix: ManageWP Worker plugin losing the white label setting in certain specific scenarios.
+
 = 4.1.29 =
 
 - Improvement: Post revision cleanup is now faster & furiouser (is that even a word?)

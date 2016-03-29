@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.1.29
+Version: 4.1.30
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -65,6 +65,7 @@ if (!function_exists('mwp_fail_safe')):
 
         // The only fatal error that we would get would be a 'Class 'X' not found in ...', so look out only for those messages.
         if (!preg_match('/^Class \'[^\']+\' not found$/', $lastError['message']) &&
+            !preg_match('/^Call to undefined method /', $lastError['message']) &&
             !preg_match('/^require_once\(\): Failed opening required \'[^\']+\'/', $lastError['message'])
         ) {
             return;
@@ -413,6 +414,11 @@ if (!class_exists('MwpRecoveryKit', false)):
             }
 
             self::clearUnknownFiles($cachedFilesAndChecksums, $fs);
+
+            if (function_exists('opcache_reset')) {
+                @opcache_reset();
+            }
+
             restore_error_handler();
 
             return $recoveredFiles;
@@ -495,8 +501,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.29';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2016-03-23 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.30';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2016-03-28 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {

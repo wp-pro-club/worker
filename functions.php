@@ -658,6 +658,11 @@ function mwp_datasend($params = array())
         if (!is_wp_error($result)) {
             if (isset($result['body']) && !empty($result['body'])) {
                 $settings = @unserialize($result['body']);
+
+                if ($settings === false) {
+                    return;
+                }
+
                 /* rebrand worker or set default */
                 $brand = '';
                 if (isset($settings['worker_brand']) && $settings['worker_brand']) {
