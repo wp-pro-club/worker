@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.1.30
+Version: 4.1.33
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -501,8 +501,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.30';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2016-03-28 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.33';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2016-05-16 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {
@@ -589,6 +589,7 @@ if (!function_exists('mwp_init')):
         define('MWP_BACKUP_DIR', WP_CONTENT_DIR.'/managewp/backups');
         define('MWP_DB_DIR', MWP_BACKUP_DIR.'/mwp_db');
 
+        add_filter('deprecated_function_trigger_error', '__return_false');
         add_filter('mmb_stats_filter', 'mmb_get_extended_info');
         add_action('plugins_loaded', 'mwp_return_core_reference', 1);
         add_filter('cron_schedules', 'mmb_more_reccurences');

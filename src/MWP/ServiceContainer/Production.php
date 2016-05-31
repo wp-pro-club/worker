@@ -260,7 +260,9 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
             // Logs can only go on for two days, always delete them after that
             if ($logStart && time() - $logStart > 172800) {
                 // delete log file and disable logging
-                @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
+                if ($fileLogging && @is_file(dirname(__FILE__).'/../../../'.$fileLogging)) {
+                    @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
+                }
                 $parameters = $this->getWordPressContext()->optionGet('mwp_container_parameters');
 
                 $fileLogging = null;

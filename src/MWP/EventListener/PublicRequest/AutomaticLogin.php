@@ -66,8 +66,8 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $alreadyRedirected = !empty($request->query['auto_login_fixed']);
         if (
             (
-                (!$isHttps !== $shouldHttps)
-                || (!$isWww !== $shouldWww)
+                ($isHttps !== $shouldHttps)
+                || ($isWww !== $shouldWww)
             )
             && !$alreadyRedirected
         ) {
@@ -129,7 +129,13 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
 
         $this->context->setCurrentUser($user);
         $this->attachSessionTokenListener();
-        $this->context->setAuthCookie($user);
+
+        if (!$isHttps) { // when not on https login to both http and https
+            $this->context->setAuthCookie($user, false, false); // login to http
+            $this->context->setAuthCookie($user, false, true); // login to https
+        } else {
+            $this->context->setAuthCookie($user); // we are on https, only do the login to https to be safe
+        }
 
         $adminUri    = rtrim($this->context->getAdminUrl(''), '/').'/'.$where;
         $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect', 'auto_login_fixed'));

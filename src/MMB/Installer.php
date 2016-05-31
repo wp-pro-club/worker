@@ -20,7 +20,8 @@ class MMB_Installer extends MMB_Core
         @include_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
 
         global $wp_filesystem;
-        if (!$wp_filesystem) {
+
+        if (!$this->check_if_pantheon() && !$wp_filesystem) {
             WP_Filesystem();
         }
     }
@@ -467,7 +468,7 @@ class MMB_Installer extends MMB_Core
             );
         }
 
-        $this->doPluginUpdateCheck();
+        $this->doPluginUpdateCheck(true);
         $current  = $this->mmb_get_transient('update_plugins');
         $versions = array();
         $return = array();
@@ -528,7 +529,7 @@ class MMB_Installer extends MMB_Core
             );
         }
 
-        $this->doThemeUpdateCheck();
+        $this->doThemeUpdateCheck(true);
         $current  = $this->mmb_get_transient('update_themes');
         $versions = array();
         if (!empty($current)) {

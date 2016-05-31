@@ -104,6 +104,7 @@ class MMB_Stats extends MMB_Core
                     $commented_post           = get_post($comment->comment_post_ID);
                     $comment->post_title      = $commented_post->post_title;
                     $comment->comment_content = $this->trim_content($comment->comment_content, $trimlen);
+                    $comment->comment_content = seems_utf8($comment->comment_content) ? $comment->comment_content : utf8_encode($comment->comment_content);
                     unset($comment->comment_author_IP);
                     unset($comment->comment_karma);
                     unset($comment->comment_agent);
@@ -119,6 +120,7 @@ class MMB_Stats extends MMB_Core
                     $commented_post           = get_post($comment->comment_post_ID);
                     $comment->post_title      = $commented_post->post_title;
                     $comment->comment_content = $this->trim_content($comment->comment_content, $trimlen);
+                    $comment->comment_content = seems_utf8($comment->comment_content) ? $comment->comment_content : utf8_encode($comment->comment_content);
                     unset($comment->comment_author_IP);
                     unset($comment->comment_karma);
                     unset($comment->comment_agent);
@@ -390,9 +392,9 @@ class MMB_Stats extends MMB_Core
         return $userList;
     }
 
-    private function wpmu_dev_fix($tag)
+    private function remove_filter_by_plugin_class($tag, $class_name)
     {
-        if (!class_exists('WPMUDEV_Dashboard_Site')) {
+        if (!class_exists($class_name)) {
             return null;
         }
 
@@ -407,7 +409,7 @@ class MMB_Stats extends MMB_Core
                 continue;
             }
 
-            if (!$callable['function'][0] instanceof WPMUDEV_Dashboard_Site) {
+            if (!is_a($callable['function'][0], $class_name)) {
                 continue;
             }
 
@@ -424,9 +426,10 @@ class MMB_Stats extends MMB_Core
         include_once ABSPATH.'wp-includes/update.php';
         include_once ABSPATH.'wp-admin/includes/update.php';
 
-        // remove WPMU Dev filters that do not play nice and screw up the transients
-        $callablePluginFn = $this->wpmu_dev_fix('site_transient_update_plugins');
-        $callableThemeFn  = $this->wpmu_dev_fix('site_transient_update_themes');
+        // remove filters that do not play nice and screw up the transients or crash requests
+        $callablePluginFn  = $this->remove_filter_by_plugin_class('site_transient_update_plugins', 'WPMUDEV_Dashboard_Site');
+        $callableThemeFn   = $this->remove_filter_by_plugin_class('site_transient_update_themes', 'WPMUDEV_Dashboard_Site');
+        $callableLmsPlugin = $this->remove_filter_by_plugin_class('pre_set_site_transient_update_plugins', 'nss_plugin_updater_sfwd_lms');
 
         $stats = $this->mmb_parse_action_params('pre_init_stats', $params, $this);
         extract($params);
@@ -456,13 +459,17 @@ class MMB_Stats extends MMB_Core
             do_action('load-plugins.php');
         }
 
-        // it is now safe to activate WPMU Dev filters again
+        // it is now safe to activate the filters again
         if (!empty($callablePluginFn)) {
             add_filter('site_transient_update_plugins', $callablePluginFn);
         }
 
         if (!empty($callableThemeFn)) {
             add_filter('site_transient_update_themes', $callableThemeFn);
+        }
+
+        if (!empty($callableLmsPlugin)) {
+            add_filter('pre_set_site_transient_update_plugins', $callableLmsPlugin);
         }
 
         /** @var $wpdb wpdb */
@@ -504,7 +511,7 @@ class MMB_Stats extends MMB_Core
 
         if (defined('WP_PLUGIN_DIR')) {
             $pluginDir = WP_PLUGIN_DIR;
-            if (substr($pluginDir, 0, 1) != '/'  && strpos($pluginDir, ABSPATH) === false) {
+            if (substr($pluginDir, 0, 1) != '/' && strpos($pluginDir, ABSPATH) === false) {
                 $pluginDir = ABSPATH.$pluginDir;
             }
             $stats['plugin_relative_path'] = $fs->makePathRelative($pluginDir, ABSPATH);
@@ -521,17 +528,14 @@ class MMB_Stats extends MMB_Core
         $uploadDirArray                 = wp_upload_dir();
         $stats['uploads_relative_path'] = $fs->makePathRelative($uploadDirArray['basedir'], ABSPATH);
 
-        if (!function_exists('get_filesystem_method')) {
-            include_once ABSPATH.'wp-admin/includes/file.php';
-        }
-        $stats['fs_method'] = get_filesystem_method();
+        $stats['writable']  = $this->is_server_writable();
+        $stats['fs_method'] = !$this->check_if_pantheon() ? get_filesystem_method() : '';
 
         $mmode = get_option('mwp_maintenace_mode');
 
         if (!empty($mmode) && isset($mmode['active']) && $mmode['active'] == true) {
             $stats['maintenance'] = true;
         }
-        $stats['writable'] = $this->is_server_writable();
 
         return $stats;
     }
@@ -718,9 +722,6 @@ class MMB_Stats extends MMB_Core
                     $stats['network_parent'] = $details->siteurl;
                 }
             }
-        }
-        if (!function_exists('get_filesystem_method')) {
-            include_once ABSPATH.'wp-admin/includes/file.php';
         }
 
         $stats['writable'] = $this->is_server_writable();

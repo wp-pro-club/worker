@@ -46,6 +46,22 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Changelog ==
 
+= 4.1.33 =
+
+- Improvement: Website wp-admin login is now faster,
+- Fix: Certain cases where logging into an HTTP website with an HTTPS wp-admin did not log you in properly.
+- Fix: Redeclare error that caused a plugin update to report a false negative.
+
+= 4.1.32 =
+
+- Improvement: With a few improvements we are fully compatible with Pantheon.
+- Fix: Previous problems with the false-positive theme and plugin updates have been resolved. These updates will now be performed fully.
+- Fix: You will no longer receive an unhandled exception error message regarding the unlink of a directory in the Worker plugin.
+
+= 4.1.31 =
+
+- Fix: Comments with non-UTF-8 characters no longer have issues with sync.
+
 = 4.1.30 =
 
 - Improvement: Hardened the ManageWP Worker recovery mode, which allows it to automatically resync to your ManageWP dashboard after a crash. That's one small step for mankind, one giant leap for Skynet.

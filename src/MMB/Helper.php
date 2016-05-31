@@ -312,8 +312,21 @@ class MMB_Helper
         }
     }
 
+    public function check_if_pantheon()
+    {
+        return !empty($_ENV['PANTHEON_ENVIRONMENT']) && $_ENV['PANTHEON_ENVIRONMENT'] !== 'dev';
+    }
+
     public function is_server_writable()
     {
+        if ($this->check_if_pantheon()) {
+            return false;
+        }
+
+        if (!function_exists('get_filesystem_method')) {
+            include_once ABSPATH.'wp-admin/includes/file.php';
+        }
+
         if ((!defined('FTP_HOST') || !defined('FTP_USER')) && (get_filesystem_method(array(), false) != 'direct')) {
             return false;
         } else {
@@ -393,9 +406,17 @@ class MMB_Helper
         do_action('load-plugins.php');
     }
 
-    public function doPluginUpdateCheck()
+    public function doPluginUpdateCheck($doAdminInit = false)
     {
         global $wp_current_filter;
+
+        $callablePluginFn  = $this->remove_filter_by_plugin_class('site_transient_update_plugins', 'WPMUDEV_Dashboard_Site');
+        $callableLmsPlugin = $this->remove_filter_by_plugin_class('pre_set_site_transient_update_plugins', 'nss_plugin_updater_sfwd_lms');
+
+        if ($doAdminInit) {
+            do_action('admin_init');
+        }
+
         $wp_current_filter[] = 'load-update-core.php';
 
         if (function_exists('wp_clean_update_cache')) {
@@ -407,11 +428,26 @@ class MMB_Helper
         array_pop($wp_current_filter);
 
         do_action('load-plugins.php');
+
+        if (!empty($callablePluginFn)) {
+            add_filter('site_transient_update_plugins', $callablePluginFn);
+        }
+
+        if (!empty($callableLmsPlugin)) {
+            add_filter('pre_set_site_transient_update_plugins', $callableLmsPlugin);
+        }
     }
 
-    public function doThemeUpdateCheck()
+    public function doThemeUpdateCheck($doAdminInit = false)
     {
         global $wp_current_filter;
+
+        $callableThemeFn = $this->remove_filter_by_plugin_class('site_transient_update_themes', 'WPMUDEV_Dashboard_Site');
+
+        if ($doAdminInit) {
+            do_action('admin_init');
+        }
+
         $wp_current_filter[] = 'load-update-core.php';
 
         if (function_exists('wp_clean_update_cache')) {
@@ -423,5 +459,38 @@ class MMB_Helper
         array_pop($wp_current_filter);
 
         do_action('load-plugins.php');
+
+        if (!empty($callableThemeFn)) {
+            add_filter('site_transient_update_themes', $callableThemeFn);
+        }
+    }
+
+    private function remove_filter_by_plugin_class($tag, $class_name)
+    {
+        if (!class_exists($class_name)) {
+            return null;
+        }
+
+        global $wp_filter;
+
+        if (empty($wp_filter[$tag][10])) {
+            return null;
+        }
+
+        foreach ($wp_filter[$tag][10] as $callable) {
+            if (empty($callable['function']) || !is_array($callable['function'])) {
+                continue;
+            }
+
+            if (!is_a($callable['function'][0], $class_name)) {
+                continue;
+            }
+
+            remove_filter($tag, $callable['function']);
+
+            return $callable['function'];
+        }
+
+        return null;
     }
 }
