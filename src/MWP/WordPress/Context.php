@@ -126,14 +126,11 @@ class MWP_WordPress_Context
     public function optionDelete($optionName, $global = false)
     {
         if ($global && is_multisite()) {
-            $db             = $this->getDb();
-            $blogIDs        = $db->get_col("SELECT blog_id FROM $db->blogs");
-            $originalBlogID = $this->getCurrentBlogId();
+            $db      = $this->getDb();
+            $blogIDs = $db->get_col("SELECT blog_id FROM $db->blogs");
             foreach ($blogIDs as $blogID) {
-                switch_to_blog($blogID);
-                delete_site_option($optionName);
+                delete_blog_option($blogID, $optionName);
             }
-            switch_to_blog($originalBlogID);
         } else {
             delete_option($optionName);
         }
@@ -151,14 +148,11 @@ class MWP_WordPress_Context
     public function optionSet($optionName, $optionValue, $global = false)
     {
         if ($global && is_multisite()) {
-            $db             = $this->getDb();
-            $blogIDs        = $db->get_col("SELECT blog_id FROM $db->blogs");
-            $originalBlogID = $this->getCurrentBlogId();
+            $db      = $this->getDb();
+            $blogIDs = $db->get_col("SELECT blog_id FROM $db->blogs");
             foreach ($blogIDs as $blogID) {
-                switch_to_blog($blogID);
-                update_site_option($optionName, $optionValue);
+                update_blog_option($blogID, $optionName, $optionValue);
             }
-            switch_to_blog($originalBlogID);
         } else {
             update_option($optionName, $optionValue);
         }
@@ -292,7 +286,7 @@ class MWP_WordPress_Context
     public function getThemes()
     {
         // When the plugin is MU-loaded, the WordPress theme directories are not set.
-        if ($this->isMustUse() && empty($this->context['wp_theme_directories'])) {
+        if (empty($this->context['wp_theme_directories'])) {
             // Register the default theme directory root.
             register_theme_directory(get_theme_root());
         }
@@ -546,7 +540,7 @@ class MWP_WordPress_Context
 
     public function isPluginEnabled($pluginBasename)
     {
-        $plugins = (array) $this->optionGet('active_plugins', array());
+        $plugins = (array)$this->optionGet('active_plugins', array());
 
         return in_array($pluginBasename, $plugins);
     }

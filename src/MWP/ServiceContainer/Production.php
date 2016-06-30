@@ -77,7 +77,6 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         $mapper = new MWP_Action_Registry();
 
         $mapper->addDefinition('do_upgrade', new MWP_Action_Definition('mmb_do_upgrade', array('hook_name' => 'init', 'hook_priority' => 9999)));
-        $mapper->addDefinition('get_stats', new MWP_Action_Definition('mmb_stats_get', array('hook_name' => 'init', 'hook_priority' => 9999)));
         $mapper->addDefinition('remove_site', new MWP_Action_Definition('mmb_remove_site'));
         $mapper->addDefinition('backup_clone', new MWP_Action_Definition('mmb_backup_now'));
         $mapper->addDefinition('restore', new MWP_Action_Definition('mmb_restore_now'));
@@ -116,6 +115,9 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         $mapper->addDefinition('destroy_sessions', new MWP_Action_Definition(array('MWP_Action_DestroySessions', 'execute')));
         $mapper->addDefinition('check_connection', new MWP_Action_Definition(array('MWP_Action_CheckConnection', 'execute')));
         $mapper->addDefinition('clear_transient', new MWP_Action_Definition(array('MWP_Action_ClearTransient', 'execute')));
+        $mapper->addDefinition('get_stats', new MWP_Action_Definition(array('MWP_Action_GetStats', 'execute'), array('hook_name' => 'wp_loaded', 'hook_priority' => PHP_INT_MAX)));
+        $mapper->addDefinition('get_stats_read', new MWP_Action_Definition(array('MWP_Action_GetStats', 'execute')));
+        $mapper->addDefinition('get_components_stats', new MWP_Action_Definition(array('MWP_Action_GetComponentsStats', 'execute')));
 
         // Incremental backup actions
         $mapper->addDefinition('list_files', new MWP_Action_Definition(array('MWP_Action_IncrementalBackup_ListFiles', 'queryFiles')));
@@ -223,7 +225,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
 
     private function createLogStream($file)
     {
-        $filePath = dirname(__FILE__).'/../../../'.$file;
+        $filePath = dirname(__FILE__) . '/../../../' . $file;
 
         if (!is_writable(dirname($filePath))) {
             return false;
@@ -260,8 +262,8 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
             // Logs can only go on for two days, always delete them after that
             if ($logStart && time() - $logStart > 172800) {
                 // delete log file and disable logging
-                if ($fileLogging && @is_file(dirname(__FILE__).'/../../../'.$fileLogging)) {
-                    @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
+                if ($fileLogging && @is_file(dirname(__FILE__) . '/../../../' . $fileLogging)) {
+                    @unlink(dirname(__FILE__) . '/../../../' . $fileLogging);
                 }
                 $parameters = $this->getWordPressContext()->optionGet('mwp_container_parameters');
 
@@ -269,13 +271,13 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
                 $gelfLogging = null;
 
                 $parameters['gelf_server'] = null;
-                $parameters['log_file']    = null;
-                $parameters['log_start']   = false;
+                $parameters['log_file'] = null;
+                $parameters['log_start'] = false;
 
                 $this->getWordPressContext()->optionSet('mwp_container_parameters', $parameters);
             }
-        } elseif ($fileLogging && @is_file(dirname(__FILE__).'/../../../'.$fileLogging)) {
-            @unlink(dirname(__FILE__).'/../../../'.$fileLogging);
+        } elseif ($fileLogging && @is_file(dirname(__FILE__) . '/../../../' . $fileLogging)) {
+            @unlink(dirname(__FILE__) . '/../../../' . $fileLogging);
         }
 
         if ($fileLogging && ($logFile = $this->createLogStream($fileLogging))) {
@@ -285,7 +287,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         }
 
         if ($gelfLogging) {
-            $publisher  = $this->getGelfPublisher();
+            $publisher = $this->getGelfPublisher();
             $handlers[] = new Monolog_Handler_LegacyGelfHandler($publisher);
         }
 
@@ -406,8 +408,8 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
 
     protected function createGelfPublisher()
     {
-        $server       = $this->getParameter('gelf_server');
-        $port         = $this->getParameter('gelf_port');
+        $server = $this->getParameter('gelf_server');
+        $port = $this->getParameter('gelf_port');
         $fallbackPort = $this->getParameter('gelf_port_fallback');
 
         return new Gelf_Publisher($server, $port, $fallbackPort);

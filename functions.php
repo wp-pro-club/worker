@@ -1063,7 +1063,12 @@ function mmb_update_worker_plugin($params)
     if (!empty($params['version'])) {
         $recoveryKit = new MwpRecoveryKit();
         update_option('mwp_incremental_update_active', time());
-        $files = $recoveryKit->recover($params['version']);
+        try {
+            $files = $recoveryKit->recover($params['version']);
+        } catch (Exception $e) {
+            update_option('mwp_incremental_update_active', '');
+            throw $e;
+        }
         update_option('mwp_incremental_update_active', '');
         mmb_response(array('files' => $files, 'success' => 'ManageWP Worker plugin successfully updated'), true);
     } else {
@@ -1382,11 +1387,17 @@ function mmb_plugin_actions()
                             if ($ucap == $cap) {
                                 ob_end_clean();
                                 ob_end_flush();
+                                if (!headers_sent()) {
+                                    header(sprintf('%s 503 Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1'), true, 503);
+                                }
                                 die($mmode['template']);
                             }
                         }
                     }
                 } else {
+                    if (!headers_sent()) {
+                        header(sprintf('%s 503 Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1'), true, 503);
+                    }
                     die($mmode['template']);
                 }
             }

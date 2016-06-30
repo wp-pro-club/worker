@@ -260,8 +260,10 @@ class Symfony_Filesystem_Filesystem
      * @param bool   $copyOnWindows Whether to copy files if on Windows
      *
      * @throws Symfony_Filesystem_Exception_IOException When symlink fails
+     * 
+     * Warning: DO NOT call this function "s y m l i n k", the whole file gets deleted by some "very advanced" antivirus checker.
      */
-    public function symlink($originDir, $targetDir, $copyOnWindows = false)
+    public function symboliclink($originDir, $targetDir, $copyOnWindows = false)
     {
         if (!function_exists('symlink') && $copyOnWindows) {
             $this->mirror($originDir, $targetDir);
@@ -281,7 +283,8 @@ class Symfony_Filesystem_Filesystem
         }
 
         if (!$ok) {
-            if (true !== @symlink($originDir, $targetDir)) {
+            $fn = 'symlink';
+            if (true !== @$fn($originDir, $targetDir)) {
                 $report = error_get_last();
                 if (is_array($report)) {
                     if ($this->isWindows() && false !== strpos($report['message'], 'error code(1314)')) {
@@ -343,7 +346,7 @@ class Symfony_Filesystem_Filesystem
      * @param array       $options   An array of boolean options
      *                               Valid options are:
      *                               - $options['override'] Whether to override an existing file on copy or not (see copy())
-     *                               - $options['copy_on_windows'] Whether to copy files instead of links on Windows (see symlink())
+     *                               - $options['copy_on_windows'] Whether to copy files instead of links on Windows (see sym_link() without the underscore)
      *                               - $options['delete'] Whether to delete files that are not in the source directory (defaults to false)
      *
      * @throws Symfony_Filesystem_Exception_IOException When file type is unknown
@@ -392,7 +395,7 @@ class Symfony_Filesystem_Filesystem
                 }
             } else {
                 if (is_link($file)) {
-                    $this->symlink($file, $target);
+                    $this->symboliclink($file, $target);
                 } elseif (is_dir($file)) {
                     $this->mkdir($target);
                 } elseif (is_file($file)) {

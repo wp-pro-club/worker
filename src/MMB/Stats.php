@@ -426,51 +426,8 @@ class MMB_Stats extends MMB_Core
         include_once ABSPATH.'wp-includes/update.php';
         include_once ABSPATH.'wp-admin/includes/update.php';
 
-        // remove filters that do not play nice and screw up the transients or crash requests
-        $callablePluginFn  = $this->remove_filter_by_plugin_class('site_transient_update_plugins', 'WPMUDEV_Dashboard_Site');
-        $callableThemeFn   = $this->remove_filter_by_plugin_class('site_transient_update_themes', 'WPMUDEV_Dashboard_Site');
-        $callableLmsPlugin = $this->remove_filter_by_plugin_class('pre_set_site_transient_update_plugins', 'nss_plugin_updater_sfwd_lms');
-
         $stats = $this->mmb_parse_action_params('pre_init_stats', $params, $this);
         extract($params);
-
-        if (isset($params['doAdminInit'])) {
-            do_action('admin_init');
-        }
-
-        if ($params['refresh'] == 'transient') {
-            global $wp_current_filter;
-            $wp_current_filter[] = 'load-update-core.php';
-
-            if (function_exists('wp_clean_update_cache')) {
-                wp_clean_update_cache();
-            }
-
-            wp_version_check();
-            wp_update_themes();
-
-            // THIS IS INTENTIONAL, please do not delete one of the calls to wp_update_plugins(), it is required for
-            // some custom plugins (read premium) to work with ManageWP :)
-            // the second call is not going to trigger the remote post invoked from the wp_update_plugins call
-            wp_update_plugins();
-
-            array_pop($wp_current_filter);
-
-            do_action('load-plugins.php');
-        }
-
-        // it is now safe to activate the filters again
-        if (!empty($callablePluginFn)) {
-            add_filter('site_transient_update_plugins', $callablePluginFn);
-        }
-
-        if (!empty($callableThemeFn)) {
-            add_filter('site_transient_update_themes', $callableThemeFn);
-        }
-
-        if (!empty($callableLmsPlugin)) {
-            add_filter('pre_set_site_transient_update_plugins', $callableLmsPlugin);
-        }
 
         /** @var $wpdb wpdb */
         global $wpdb, $wp_version, $mmb_plugin_dir;

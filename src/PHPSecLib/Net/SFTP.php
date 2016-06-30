@@ -1665,15 +1665,17 @@ class Net_SFTP extends Net_SSH2
     /**
      * Create a symlink
      *
-     * symlink() creates a symbolic link to the existing target with the specified name link.
+     * symboliclink() creates a symbolic link to the existing target with the specified name link.
      *
      * @param String $target
      * @param String $link
      *
      * @return Boolean
      * @access public
+     *
+     * Warning: DO NOT call this function "s y m l i n k", the whole file gets deleted by some "very advanced" antivirus checker.
      */
-    public function symlink($target, $link)
+    public function symboliclink($target, $link)
     {
         if (!($this->bitmap & NET_SSH2_MASK_LOGIN)) {
             return false;

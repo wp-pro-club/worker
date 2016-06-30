@@ -148,7 +148,7 @@ class Monolog_ErrorHandler
     /**
      * @private
      */
-    public function handleException(Exception $e)
+    public function handleException($e)
     {
         $this->logger->log(
             $this->uncaughtExceptionLevel === null ? Monolog_Psr_LogLevel::ERROR : $this->uncaughtExceptionLevel,

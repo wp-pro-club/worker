@@ -25,7 +25,7 @@ class MWP_Worker_Configuration
 
     public function setPublicKey($publicKey)
     {
-        $this->context->optionSet('_worker_public_key', base64_encode($publicKey));
+        $this->context->optionSet('_worker_public_key', base64_encode($publicKey), true);
     }
 
     public function deletePublicKey()

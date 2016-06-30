@@ -101,6 +101,8 @@ class MWP_Worker_Kernel
                 $proxy = new MWP_WordPress_HookProxy(array($this, 'hookResponse'), $request, $callback, $params, $actionDefinition, $deferredCallback);
                 $context->addAction($hookName, $proxy->getCallable(), $actionDefinition->getOption('hook_priority'));
 
+                mwp_logger()->debug('Finished MU context work');
+
                 return;
             }
 

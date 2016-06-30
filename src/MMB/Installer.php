@@ -62,6 +62,7 @@ class MMB_Installer extends MMB_Core
     {
         global $wp_filesystem;
         extract($params);
+        $network_activate = isset($params['network_activate']) ? $params['network_activate'] : false;
 
         if (!isset($package) || empty($package)) {
             return array(
@@ -104,22 +105,29 @@ class MMB_Installer extends MMB_Core
             );
         }
 
-        if ($activate) {
-            if ($type == 'plugins') {
-                include_once ABSPATH.'wp-admin/includes/plugin.php';
-                $all_plugins = get_plugins();
-                foreach ($all_plugins as $plugin_slug => $plugin) {
-                    $plugin_dir = preg_split('/\//', $plugin_slug);
-                    foreach ($install_info as $key => $install) {
-                        if (!$install || is_wp_error($install)) {
-                            continue;
+        if ($type == 'plugins') {
+            include_once ABSPATH.'wp-admin/includes/plugin.php';
+            $all_plugins = get_plugins();
+            foreach ($all_plugins as $plugin_slug => $plugin) {
+                $plugin_dir = preg_split('/\//', $plugin_slug);
+                foreach ($install_info as $key => $install) {
+                    if (!$install || is_wp_error($install)) {
+                        continue;
+                    }
+                    if ($install['destination_name'] == $plugin_dir[0]) {
+                        if ($activate) {
+                            $install_info[$key]['activated'] = activate_plugin($plugin_slug, '', $network_activate);
                         }
-                        if ($install['destination_name'] == $plugin_dir[0]) {
-                            $install_info[$key]['activated'] = activate_plugin($plugin_slug, '', false);
-                        }
+
+                        $install_info[$key]['basename'] = $plugin_slug;
+                        $install_info[$key]['full_name'] = $plugin['Name'];
                     }
                 }
-            } else {
+            }
+        }
+
+        if ($activate) {
+            if ($type != 'plugins') {
                 if (count($install_info) == 1) {
                     global $wp_themes;
                     include_once ABSPATH.'wp-includes/theme.php';
@@ -275,7 +283,6 @@ class MMB_Installer extends MMB_Core
 
     /**
      * Upgrades WordPress locally
-
      */
     public function upgrade_core($current)
     {
@@ -284,8 +291,6 @@ class MMB_Installer extends MMB_Core
         if (file_exists(ABSPATH.'/wp-admin/includes/update.php')) {
             include_once ABSPATH.'/wp-admin/includes/update.php';
         }
-
-        $this->doCoreUpdateCheck();
 
         $current_update = false;
         ob_end_flush();
@@ -468,42 +473,22 @@ class MMB_Installer extends MMB_Core
             );
         }
 
-        $this->doPluginUpdateCheck(true);
-        $current  = $this->mmb_get_transient('update_plugins');
-        $versions = array();
         $return = array();
-
-        if (!empty($current)) {
-            foreach ($plugins as $plugin => $data) {
-                if (isset($current->checked[$plugin])) {
-                    $versions[$current->checked[$plugin]] = $plugin;
-                }
-            }
-        }
 
         if (class_exists('Plugin_Upgrader')) {
             /** @handled class */
             $upgrader = new Plugin_Upgrader(mwp_container()->getUpdaterSkin());
             $result   = $upgrader->bulk_upgrade(array_keys($plugins));
 
-            if (!function_exists('wp_update_plugins')) {
-                include_once ABSPATH.'wp-includes/update.php';
-            }
 
-            $this->doPluginUpdateCheck();
-
-            $current = $this->mmb_get_transient('update_plugins');
             if (!empty($result)) {
                 foreach ($result as $plugin_slug => $plugin_info) {
                     if (!$plugin_info || is_wp_error($plugin_info)) {
                         $return[$plugin_slug] = $this->mmb_get_error($plugin_info);
-                    } else {
-                        if (!empty($result[$plugin_slug]) || (isset($current->checked[$plugin_slug]) && version_compare(array_search($plugin_slug, $versions), $current->checked[$plugin_slug], '<') == true)) {
-                            $return[$plugin_slug] = 1;
-                        } else {
-                            $return[$plugin_slug] = 'Could not refresh upgrade transients, please reload website data';
-                        }
+                        continue;
                     }
+
+                    $return[$plugin_slug] = 1;
                 }
 
                 return array(
@@ -529,39 +514,20 @@ class MMB_Installer extends MMB_Core
             );
         }
 
-        $this->doThemeUpdateCheck(true);
-        $current  = $this->mmb_get_transient('update_themes');
-        $versions = array();
-        if (!empty($current)) {
-            foreach ($themes as $theme) {
-                if (isset($current->checked[$theme])) {
-                    $versions[$current->checked[$theme]] = $theme;
-                }
-            }
-        }
         if (class_exists('Theme_Upgrader')) {
             /** @handled class */
             $upgrader = new Theme_Upgrader(mwp_container()->getUpdaterSkin());
             $result   = $upgrader->bulk_upgrade($themes);
 
-            if (!function_exists('wp_update_themes')) {
-                include_once ABSPATH.'wp-includes/update.php';
-            }
-
-            $this->doThemeUpdateCheck();
-            $current = $this->mmb_get_transient('update_themes');
             $return  = array();
             if (!empty($result)) {
                 foreach ($result as $theme_tmp => $theme_info) {
                     if (is_wp_error($theme_info) || empty($theme_info)) {
                         $return[$theme_tmp] = $this->mmb_get_error($theme_info);
-                    } else {
-                        if (!empty($result[$theme_tmp]) || (isset($current->checked[$theme_tmp]) && version_compare(array_search($theme_tmp, $versions), $current->checked[$theme_tmp], '<') == true)) {
-                            $return[$theme_tmp] = 1;
-                        } else {
-                            $return[$theme_tmp] = 'Could not refresh upgrade transients, please reload website data';
-                        }
+                        continue;
                     }
+
+                    $return[$theme_tmp] = 1;
                 }
 
                 return array(
@@ -656,7 +622,7 @@ class MMB_Installer extends MMB_Core
                         $upgrader_skin              = new WP_Upgrader_Skin();
                         $upgrader_skin->done_header = true;
                         /** @handled class */
-                        $upgrader                   = new WP_Upgrader();
+                        $upgrader = new WP_Upgrader();
                         @$update_result = $upgrader->run(
                             array(
                                 'package'           => $update['url'],
@@ -738,7 +704,7 @@ class MMB_Installer extends MMB_Core
 
             $current = $this->mmb_get_transient('update_themes');
             if (!empty($current->response)) {
-                foreach ((array) $all_themes as $theme_template => $theme_data) {
+                foreach ((array)$all_themes as $theme_template => $theme_data) {
                     if (!empty($theme_data['Parent Theme'])) {
                         continue;
                     }
@@ -766,7 +732,7 @@ class MMB_Installer extends MMB_Core
 
             $current = $this->mmb_get_transient('update_themes');
             if (!empty($current->response)) {
-                foreach ((array) $all_themes as $theme_template => $theme_data) {
+                foreach ((array)$all_themes as $theme_template => $theme_data) {
                     if (isset($theme_data['Parent Theme']) && !empty($theme_data['Parent Theme'])) {
                         continue;
                     }
@@ -818,7 +784,7 @@ class MMB_Installer extends MMB_Core
         }
 
         $search = $args['search'];
-        $type   = trim((string) $args['type']);
+        $type   = trim((string)$args['type']);
 
         if (!function_exists('get_plugins')) {
             include_once ABSPATH.'wp-admin/includes/plugin.php';
@@ -986,13 +952,15 @@ class MMB_Installer extends MMB_Core
         foreach ($items as $item) {
             switch ($items_edit_action) {
                 case 'activate':
-                    $result = activate_plugin($item['path']);
+                    $result = activate_plugin($item['path'], '', $item['networkWide']);
                     break;
                 case 'deactivate':
                     $result = deactivate_plugins(
                         array(
                             $item['path'],
-                        )
+                        ),
+                        false,
+                        $item['networkWide']
                     );
                     break;
                 case 'delete':

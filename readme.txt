@@ -3,7 +3,7 @@ Contributors: managewp,freediver
 Donate link: https://www.networkforgood.org/donation/MakeDonation.aspx?ORGID2=520781390
 Tags: administration, admin, amazon, analytics, api, automate, automatic, backup, comments, clone, dashboard, database, debug, dropbox, duplicate, events, google analytics, google drive, google, integration, login, manage, managewp, migrate, multiple, multisite, mysql, page, performance, plugin, post, remote, s3, security, seo, spam, speed, stats
 Requires at least: 3.1
-Tested up to: 4.4
+Tested up to: 4.5.3
 Stable tag: trunk
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/quick-guide-gplv3.html
@@ -45,6 +45,19 @@ https://www.youtube.com/watch?v=C5nBQJQIfH4
 ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress news site"), community project capturing the pulse of the WordPress community.
 
 == Changelog ==
+
+= 4.2.1 =
+
+- Improvement: Multisite support has been heavily improved and implemented in Orion.
+
+= 4.2.0 =
+
+- Improvement: Now the sync process is faster and more reliable.
+- Improvement: Updating plugins/themes has also been enhanced.
+- Improvement: The plugin is now able to self recover deleted files without failing any requests before that.
+- Improvement: The incremental update feature has been improved.
+- Fix: Better PHP7 support.
+- Fix: The "nonce already used" error message is fixed in some cases where it was due to a plugin conflict.
 
 = 4.1.33 =
 

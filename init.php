@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.1.33
+Version: 4.2.1
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -81,6 +81,7 @@ if (!function_exists('mwp_fail_safe')):
         update_option('mwp_recovering', time());
 
         $siteUrl = get_option('siteurl');
+        $path    = (string)parse_url($siteUrl, PHP_URL_PATH);
         $title   = sprintf("ManageWP Worker corrupt on %s", $siteUrl);
         $to      = get_option('admin_email');
         $brand   = get_option('mwp_worker_brand');
@@ -104,9 +105,21 @@ if (!function_exists('mwp_fail_safe')):
 
         // If we're inside a normal request scope retry the request so user doesn't have to see an ugly error page.
         if (!empty($_SERVER['REQUEST_URI'])) {
-            $siteUrl .= $_SERVER['REQUEST_URI'];
+            $siteUrl .= substr($_SERVER['REQUEST_URI'], strlen($path));
         }
-        if (headers_sent()) {
+        if (isset($_SERVER['HTTP_MWP_ACTION'])) {
+            echo "\nMWP_RETRY_ME: 1\n", json_encode(array('error' => 'Worker recover started', 'exception' => array(
+                'class'       => 'Exception',
+                'message'     => 'Worker recover started',
+                'code'        => 10038,
+                'file'        => __FILE__,
+                'line'        => __LINE__,
+                'traceString' => '',
+                'context'     => array(),
+                'type'        => 'WORKER_RECOVER_STARTED',
+            ))), "\n";
+            exit;
+        } elseif (headers_sent()) {
             // The headers are probably sent if the PHP configuration has the 'display_errors' directive enabled. In that case try a meta redirect.
             printf('<meta http-equiv="refresh" content="0; url=%s">', htmlspecialchars($siteUrl, ENT_QUOTES));
         } else {
@@ -135,7 +148,12 @@ if (!class_exists('MwpWorkerResponder', false)):
             $this->container = $container;
         }
 
-        function callback(Exception $e = null, MWP_Http_ResponseInterface $response = null)
+        /**
+         * @param Exception|Error                 $e
+         * @param MWP_Http_ResponseInterface|null $response
+         * @throws null
+         */
+        function callback($e = null, MWP_Http_ResponseInterface $response = null)
         {
             if ($response !== null) {
                 $responseEvent = new MWP_Event_MasterResponse($response);
@@ -227,9 +245,11 @@ if (!class_exists('MwpRecoveryKit', false)):
 
         public function recover($version)
         {
-            $lockTime = get_option('mwp_incremental_recover_lock');
+            global $wpdb;
+            $lockTime = $wpdb->get_var("SELECT option_value FROM $wpdb->options WHERE option_name = 'mwp_incremental_recover_lock' LIMIT 1");
 
-            if ($lockTime && time() - $lockTime < 1200) { // lock for 20 minutes
+
+            if ($lockTime && time() - (int) $lockTime < 1200) { // lock for 20 minutes
                 throw new Exception('Another incremental update or recovery process is already active', 1337);
             }
 
@@ -472,6 +492,8 @@ endif;
 if (!function_exists('mwp_activation_hook')) {
     function mwp_activation_hook()
     {
+        update_option('mwp_incremental_update_active', '');
+
         if (get_option('mwp_recovering')) {
             update_option('mwp_recovering', '');
             // Run the checksum one last time.
@@ -492,6 +514,41 @@ if (!function_exists('mwp_activation_hook')) {
     }
 }
 
+if (!function_exists('mwp_try_recovery')):
+    function mwp_try_recovery()
+    {
+        global $wpdb;
+        $recoveringTime = $wpdb->get_var("SELECT option_value FROM $wpdb->options WHERE option_name = 'mwp_recovering' LIMIT 1");
+
+        if (empty($recoveringTime)) {
+            return true;
+        }
+
+        delete_transient('mwp_recovery_key');
+        $recoveryKit = new MwpRecoveryKit();
+        try {
+            $recoveredFiles = $recoveryKit->recover($GLOBALS['MMB_WORKER_VERSION']);
+
+            // Recovery complete.
+            update_option('mwp_recovering', '');
+            mail('dev@managewp.com', sprintf("ManageWP Worker recovered on %s", get_option('siteurl')), sprintf("%d files successfully recovered in this recovery fork of ManageWP Worker v%s. Filesystem method used was <code>%s</code>.\n\n<pre>%s</pre>", count($recoveredFiles), $GLOBALS['MMB_WORKER_VERSION'], get_filesystem_method(), implode("\n", $recoveredFiles)), 'Content-Type: text/html');
+        } catch (Exception $e) {
+            if ($e->getCode() === 1337) {
+                return false;
+            }
+
+            if (time() - $recoveringTime > 3600) {
+                // If the recovery process does not complete after an hour, deactivate the Worker for safety
+                $recoveryKit->selfDeactivate($e->getMessage());
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+endif;
+
 if (!function_exists('mwp_init')):
     function mwp_init()
     {
@@ -501,8 +558,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.1.33';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2016-05-16 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.2.1';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2016-06-29 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {
@@ -511,64 +568,103 @@ if (!function_exists('mwp_init')):
         }
 
         if ($incrementalUpdateTime = get_option('mwp_incremental_update_active')) {
-            if (time() - $incrementalUpdateTime > 3600) {
+            if (time() - $incrementalUpdateTime > 600) { // lock for a maximum of 10 minutes for incremental update
                 update_option('mwp_incremental_update_active', '');
             } else {
-                return;
+                if (!isset($_SERVER['HTTP_MWP_ACTION'])) {
+                    return;
+                }
+
+                global $wpdb;
+
+                $tries = 0;
+                $lastResult = true;
+
+                while ($tries < 60 && ($lastResult = $wpdb->get_var("SELECT option_value FROM $wpdb->options WHERE option_name = 'mwp_incremental_update_active' LIMIT 1"))) {
+                    sleep(1);
+                    ++$tries;
+                }
+
+                if (!$lastResult) {
+                    echo "\nMWP_RETRY_ME: 1\n";
+                }
+
+                echo "\n", json_encode(array('error' => 'Worker is currently updating; please retry this action in a few seconds.', 'exception' => array(
+                    'class'       => 'Exception',
+                    'message'     => 'Worker is currently updating; please retry this action in a few seconds.',
+                    'code'        => 10037,
+                    'file'        => __FILE__,
+                    'line'        => __LINE__,
+                    'traceString' => '',
+                    'context'     => array(),
+                    'type'        => 'WORKER_UPDATING',
+                ))), "\n";
+                exit;
             }
         }
 
         if ($recoveringTime = get_option('mwp_recovering')) {
-            $recoveryKey = get_transient('mwp_recovery_key');
-            if (!$passedRecoveryKey = filter_input(INPUT_POST, 'mwp_recovery_key')) {
-                $recoveryKey = md5(uniqid('', true));
-                set_transient('mwp_recovery_key', $recoveryKey, time() + 604800); // 1 week.
+            if (isset($_SERVER['HTTP_MWP_ACTION'])) {
+                $tries = 0;
+                $lastResult = false;
 
-                $headers = array();
-                if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-                    $headers['AUTHORIZATION'] = $_SERVER['HTTP_AUTHORIZATION'];
+                while ($tries < 60 && !($lastResult = mwp_try_recovery())) {
+                    sleep(1);
+                    ++$tries;
                 }
 
-                // fork only once, so we do not make too many parallel requests to the website
-                $lockTime = get_option('mwp_incremental_recover_lock');
-
-                if ($lockTime && time() - $lockTime < 1200) { // lock for 20 minutes
-                    return;
+                if ($lastResult) {
+                    echo "\nMWP_RETRY_ME: 1\n";
                 }
 
-                wp_remote_post(get_bloginfo('wpurl'), array(
-                    'reject_unsafe_urls' => false,
-                    'headers'            => $headers,
-                    'body'               => array(
-                        'mwp_recovery_key' => $recoveryKey,
-                    ),
-                    'timeout'            => 0.01,
-                ));
+                echo "\n", json_encode(array('error' => 'Worker is currently recovering; please retry this action in a few seconds.', 'exception' => array(
+                    'class'       => 'Exception',
+                    'message'     => 'Worker is currently recovering; please retry this action in a few seconds.',
+                    'code'        => 10036,
+                    'file'        => __FILE__,
+                    'line'        => __LINE__,
+                    'traceString' => '',
+                    'context'     => array(),
+                    'type'        => 'WORKER_RECOVERING',
+                ))), "\n";
+
+                exit;
             } else {
-                if ($recoveryKey !== $passedRecoveryKey) {
-                    return;
-                }
-                delete_transient('mwp_recovery_key');
-                $recoveryKit = new MwpRecoveryKit();
-                try {
-                    $recoveredFiles = $recoveryKit->recover($GLOBALS['MMB_WORKER_VERSION']);
+                $recoveryKey = get_transient('mwp_recovery_key');
+                if (!$passedRecoveryKey = filter_input(INPUT_POST, 'mwp_recovery_key')) {
+                    $recoveryKey = md5(uniqid('', true));
+                    set_transient('mwp_recovery_key', $recoveryKey, time() + 604800); // 1 week.
 
-                    // Recovery complete.
-                    update_option('mwp_recovering', '');
-                    mail('dev@managewp.com', sprintf("ManageWP Worker recovered on %s", get_option('siteurl')), sprintf("%d files successfully recovered in this recovery fork of ManageWP Worker v%s. Filesystem method used was <code>%s</code>.\n\n<pre>%s</pre>", count($recoveredFiles), $GLOBALS['MMB_WORKER_VERSION'], get_filesystem_method(), implode("\n", $recoveredFiles)), 'Content-Type: text/html');
-                } catch (Exception $e) {
-                    if ($e->getCode() === 1337) {
+                    $headers = array();
+                    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+                        $headers['AUTHORIZATION'] = $_SERVER['HTTP_AUTHORIZATION'];
+                    }
+
+                    // fork only once, so we do not make too many parallel requests to the website
+                    $lockTime = get_option('mwp_incremental_recover_lock');
+
+                    if ($lockTime && time() - $lockTime < 1200) { // lock for 20 minutes
                         return;
                     }
 
-                    if (time() - $recoveringTime > 3600) {
-                        // If the recovery process does not complete after an hour, deactivate the Worker for safety
-                        $recoveryKit->selfDeactivate($e->getMessage());
+                    wp_remote_post(get_bloginfo('wpurl'), array(
+                        'reject_unsafe_urls' => false,
+                        'headers'            => $headers,
+                        'body'               => array(
+                            'mwp_recovery_key' => $recoveryKey,
+                        ),
+                        'timeout'            => 0.01,
+                    ));
+                } else {
+                    if ($recoveryKey !== $passedRecoveryKey) {
+                        return;
                     }
-                }
-            }
 
-            return;
+                    mwp_try_recovery();
+                }
+
+                return;
+            }
         }
 
         // Register the autoloader that loads everything except the Google namespace.

@@ -13,6 +13,7 @@ class MWP_Event_ActionException extends Symfony_EventDispatcher_Event
 
     private $request;
 
+    /** @var Exception|Error */
     private $exception;
 
     private $data = array();
@@ -22,7 +23,7 @@ class MWP_Event_ActionException extends Symfony_EventDispatcher_Event
      */
     private $response;
 
-    public function __construct(MWP_Worker_Request $request, Exception $exception)
+    public function __construct(MWP_Worker_Request $request, $exception)
     {
         $this->request = $request;
         $this->exception = $exception;

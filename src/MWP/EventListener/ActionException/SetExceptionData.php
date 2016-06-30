@@ -45,7 +45,13 @@ class MWP_EventListener_ActionException_SetExceptionData implements Symfony_Even
         ) + $this->getDataForGenericException($exception, $verbose);
     }
 
-    private function getDataForGenericException(Exception $exception, $verbose)
+    /**
+     * @param Exception|Error $exception
+     * @param bool            $verbose
+     *
+     * @return array
+     */
+    private function getDataForGenericException($exception, $verbose)
     {
         $data = array(
             'class'   => get_class($exception),
@@ -58,9 +64,46 @@ class MWP_EventListener_ActionException_SetExceptionData implements Symfony_Even
                 'line'        => $exception->getLine(),
                 'file'        => $exception->getFile(),
                 'traceString' => $exception->getTraceAsString(),
+                'memoryUsage' => memory_get_usage(true),
+                'memoryLimit' => $this->convertToBytes(ini_get('memory_limit')),
             );
         }
 
         return $data;
+    }
+
+    private function convertToBytes($memoryLimit)
+    {
+        $memoryLimit = (string)$memoryLimit;
+
+        if ('-1' === $memoryLimit) {
+            return -1;
+        }
+
+        $memoryLimit = strtolower($memoryLimit);
+        $max         = strtolower(ltrim($memoryLimit, '+'));
+        if (0 === strpos($max, '0x')) {
+            $max = intval($max, 16);
+        } elseif (0 === strpos($max, '0')) {
+            $max = intval($max, 8);
+        } else {
+            $max = intval($max);
+        }
+
+        switch (substr($memoryLimit, -1)) {
+            /** @noinspection PhpMissingBreakStatementInspection */
+            case 't':
+                $max *= 1024;
+            /** @noinspection PhpMissingBreakStatementInspection */
+            case 'g':
+                $max *= 1024;
+            /** @noinspection PhpMissingBreakStatementInspection */
+            case 'm':
+                $max *= 1024;
+            case 'k':
+                $max *= 1024;
+        }
+
+        return $max;
     }
 }

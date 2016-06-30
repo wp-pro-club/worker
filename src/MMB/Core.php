@@ -55,6 +55,8 @@ class MMB_Core extends MMB_Helper
         if (is_multisite()) {
             $this->mmb_multisite         = $blog_id;
             $this->network_admin_install = get_option('mmb_network_admin_install');
+
+            add_action('wpmu_new_blog', array(&$this, 'updateKeys'));
         } else {
             $this->mmb_multisite         = false;
             $this->network_admin_install = null;
@@ -487,7 +489,7 @@ EOF;
     public function deactivateWorkerIfNotAddedAfterTenMinutes()
     {
         $workerActivationTime = get_option("mmb_worker_activation_time");
-        if ((int) $workerActivationTime + 600 > time()) {
+        if ((int)$workerActivationTime + 600 > time()) {
             return;
         }
         $activated_plugins = get_option('active_plugins');
@@ -497,5 +499,33 @@ EOF;
         }
         unset($activated_plugins[$keyWorker]);
         update_option('active_plugins', $activated_plugins);
+    }
+
+    public function updateKeys()
+    {
+        /** @var MMB_Core $mmbCore */
+        if (!$this->mmb_multisite) {
+            return;
+        }
+
+        global $wpdb;
+
+        $publicKey = $this->get_parent_blog_option('_worker_public_key');
+
+        if (empty($publicKey)) {
+            return;
+        }
+
+        $networkBlogs = $wpdb->get_results("select `blog_id` from `{$wpdb->blogs}`");
+
+        if (empty($networkBlogs)) {
+            return;
+        }
+
+        foreach ($networkBlogs as $details) {
+            update_blog_option($details->blog_id, '_worker_public_key', $publicKey);
+        }
+
+        return;
     }
 }
