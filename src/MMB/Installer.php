@@ -473,6 +473,12 @@ class MMB_Installer extends MMB_Core
             );
         }
 
+        if (!function_exists('wp_update_plugins')) {
+            include_once ABSPATH.'wp-includes/update.php';
+        }
+
+        @wp_update_plugins();
+
         $return = array();
 
         if (class_exists('Plugin_Upgrader')) {
@@ -480,6 +486,7 @@ class MMB_Installer extends MMB_Core
             $upgrader = new Plugin_Upgrader(mwp_container()->getUpdaterSkin());
             $result   = $upgrader->bulk_upgrade(array_keys($plugins));
 
+            @wp_update_plugins();
 
             if (!empty($result)) {
                 foreach ($result as $plugin_slug => $plugin_info) {
@@ -514,10 +521,18 @@ class MMB_Installer extends MMB_Core
             );
         }
 
+        if (!function_exists('wp_update_themes')) {
+            include_once ABSPATH.'wp-includes/update.php';
+        }
+
+        @wp_update_themes();
+
         if (class_exists('Theme_Upgrader')) {
             /** @handled class */
             $upgrader = new Theme_Upgrader(mwp_container()->getUpdaterSkin());
             $result   = $upgrader->bulk_upgrade($themes);
+
+            @wp_update_themes();
 
             $return  = array();
             if (!empty($result)) {

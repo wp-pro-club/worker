@@ -46,6 +46,10 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Changelog ==
 
+= 4.2.2 =
+
+- Fix: Fixed a bug that showed false positives when updating multiple plugins
+
 = 4.2.1 =
 
 - Improvement: Multisite support has been heavily improved and implemented in Orion.
