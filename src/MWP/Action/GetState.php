@@ -42,7 +42,9 @@ class MWP_Action_GetState extends MWP_Action_Abstract
 
         foreach ($params as $fieldName => $queryInfo) {
             $start              = microtime(true);
+            mwp_logger()->debug('Started getting field '.$queryInfo['type']);
             $queryResult        = $this->getField($queryInfo['type'], $queryInfo['options']);
+            mwp_logger()->debug('Finished getting field '.$queryInfo['type']);
             $end                = sprintf("%.6f", microtime(true) - $start);
             $result[$fieldName] = array(
                 'type'      => $queryInfo['type'],

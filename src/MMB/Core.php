@@ -47,7 +47,7 @@ class MMB_Core extends MMB_Helper
 
     public function __construct()
     {
-        global $blog_id, $_mmb_item_filter, $_mmb_options;
+        global $blog_id, $_mmb_options;
 
         $_mmb_options = get_option('wrksettings');
         $_mmb_options = !empty($_mmb_options) ? $_mmb_options : array();
@@ -79,9 +79,6 @@ class MMB_Core extends MMB_Helper
                 add_action('admin_notices', array(&$this, 'admin_notice'));
             }
         }
-
-        $_mmb_item_filter['pre_init_stats'] = array('core_update', 'hit_counter', 'comments', 'backups', 'posts', 'drafts', 'scheduled', 'site_statistics');
-        $_mmb_item_filter['get']            = array('updates', 'errors');
 
         $this->mmb_init_actions = array();
 
@@ -302,8 +299,7 @@ EOF;
         }
 
         /** @var wpdb $wpdb */
-        global $wpdb, $_wp_using_ext_object_cache;
-        $_wp_using_ext_object_cache = false;
+        global $wpdb;
 
         //delete plugin options, just in case
         if ($this->mmb_multisite != false) {
@@ -369,8 +365,7 @@ EOF;
     {
         /** @var wpdb $wpdb */
         mwp_uninstall();
-        global $current_user, $wpdb, $_wp_using_ext_object_cache;
-        $_wp_using_ext_object_cache = false;
+        global $current_user, $wpdb;
 
         if ($this->mmb_multisite != false) {
             $network_blogs = $wpdb->get_col("select `blog_id` from `{$wpdb->blogs}`");

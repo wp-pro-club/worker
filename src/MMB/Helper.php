@@ -29,22 +29,30 @@ class MMB_Helper
      */
     public function mmb_parse_action_params($key = '', $params = null, $call_object = null)
     {
-        global $_mmb_item_filter;
         $call_object = $call_object !== null ? $call_object : $this;
-        $return      = array();
 
-        if (isset($_mmb_item_filter[$key]) && !empty($_mmb_item_filter[$key])) {
-            if (isset($params['item_filter']) && !empty($params['item_filter'])) {
-                foreach ($params['item_filter'] as $_items) {
-                    if (!empty($_items)) {
-                        foreach ($_items as $_item) {
-                            if (isset($_item[0]) && in_array($_item[0], $_mmb_item_filter[$key])) {
-                                $_item[1] = isset($_item[1]) ? $_item[1] : array();
-                                $return   = call_user_func(array(&$call_object, 'get_'.$_item[0]), $return, $_item[1]);
-                            }
-                        }
-                    }
+        if (empty($params['item_filter'])) {
+            return array();
+        }
+
+        $return = array();
+
+        foreach ($params['item_filter'] as $_items) {
+            if (empty($_items)) {
+                continue;
+            }
+
+            foreach ($_items as $_item) {
+                if (!isset($_item[0])) {
+                    continue;
                 }
+
+                mwp_logger()->debug('Before getting '.$_item[0]);
+
+                $_item[1] = isset($_item[1]) ? $_item[1] : array();
+                $return   = call_user_func(array(&$call_object, 'get_'.$_item[0]), $return, $_item[1]);
+
+                mwp_logger()->debug('After getting '.$_item[0]);
             }
         }
 

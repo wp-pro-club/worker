@@ -100,6 +100,25 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $signature = base64_decode($request->query['signature']);
         $messageId = $request->query['message_id'];
 
+        $currentUser = $this->context->getCurrentUser();
+
+        $adminUri    = rtrim($this->context->getAdminUrl(''), '/').'/'.$where;
+        $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect', 'auto_login_fixed'));
+
+        if ($currentUser->user_login === $username) {
+            try {
+                $this->nonceManager->useNonce($messageId);
+            } catch (Exception $e) {
+                // We are just using the nonce to make sure it can't be used again (no need to login)
+            }
+
+            $event->setResponse(new MWP_Http_RedirectResponse($redirectUri, 302, array(
+                'P3P' => 'CP="CAO PSA OUR"',
+            )));
+
+            return;
+        }
+
         try {
             $this->nonceManager->useNonce($messageId);
         } catch (MWP_Security_Exception_NonceFormatInvalid $e) {
@@ -136,9 +155,6 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         } else {
             $this->context->setAuthCookie($user); // we are on https, only do the login to https to be safe
         }
-
-        $adminUri    = rtrim($this->context->getAdminUrl(''), '/').'/'.$where;
-        $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect', 'auto_login_fixed'));
 
         $this->context->setCookie($this->getCookieName(), '1');
 

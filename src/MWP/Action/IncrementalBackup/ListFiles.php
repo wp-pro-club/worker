@@ -159,7 +159,7 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
     private function createFileResult(SplFileInfo $file)
     {
         $fileResult = array(
-            'path'        => $this->replaceWindowsPath($this->getRelativePath($file->getRealPath(), ABSPATH)),
+            'path'        => $this->replaceWindowsPath($this->getRelativePath($file->getPathname(), ABSPATH)),
             'pathEncoded' => false,
             'isLink'      => false,
             'exists'      => false,
@@ -173,7 +173,7 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
             $fileResult['pathEncoded'] = true;
         }
         try {
-            $fileResult['link']        = $file->isLink(); // need to be first
+            $fileResult['isLink']      = $file->isLink(); // need to be first
             $fileResult['size']        = $file->getSize();
             $fileResult['isDirectory'] = $file->isDir();
             $fileResult['owner']       = $file->getOwner();

@@ -146,16 +146,12 @@ function mwp_log_warnings()
     }
 }
 
-function mmb_get_extended_info($stats)
+function mmb_get_extended_info(&$stats, &$params)
 {
-    $params                 = get_option('mmb_stats_filter');
-    $filter                 = isset($params['plugins']['cleanup']) ? $params['plugins']['cleanup'] : array();
-    $stats['num_revisions'] = mmb_num_revisions($filter['revisions']);
-    //$stats['num_revisions'] = 5;
+    $filter                     = isset($params['plugins']['cleanup']) ? $params['plugins']['cleanup'] : array();
+    $stats['num_revisions']     = mmb_num_revisions($filter['revisions']);
     $stats['overhead']          = mmb_handle_overhead(false);
     $stats['num_spam_comments'] = mmb_num_spam_comments();
-
-    return $stats;
 }
 
 /* Revisions */
@@ -413,92 +409,6 @@ function mwp_is_safe_mode()
 
 // Everything below was moved from init.php
 
-function mmb_parse_request()
-{
-    global $mmb_core, $wp_db_version, $_wp_using_ext_object_cache, $_mwp_data, $_mwp_auth;
-    $_wp_using_ext_object_cache = false;
-    @set_time_limit(1200);
-
-    if (isset($_mwp_data['setting'])) {
-        if (array_key_exists("dataown", $_mwp_data['setting'])) {
-            $oldconfiguration = array("dataown" => $_mwp_data['setting']['dataown']);
-            $mmb_core->save_options($oldconfiguration);
-            unset($_mwp_data['setting']['dataown']);
-        }
-
-        $configurationService = new MWP_Configuration_Service();
-        $configuration        = new MWP_Configuration_Conf($_mwp_data['setting']);
-        $configurationService->saveConfiguration($configuration);
-    }
-
-    if ($_mwp_data['action'] === 'add_site') {
-        mmb_add_site($_mwp_data['params']);
-        mmb_response('You should never see this.', false);
-    }
-
-    /* in case database upgrade required, do database backup and perform upgrade ( wordpress wp_upgrade() function ) */
-    if (strlen(trim($wp_db_version)) && !defined('ACX_PLUGIN_DIR')) {
-        if (get_option('db_version') != $wp_db_version) {
-            /* in multisite network, please update database manualy */
-            if (!is_multisite()) {
-                if (!function_exists('wp_upgrade')) {
-                    include_once ABSPATH.'wp-admin/includes/upgrade.php';
-                }
-
-                ob_clean();
-                @wp_upgrade();
-                @do_action('after_db_upgrade');
-                ob_end_clean();
-            }
-        }
-    }
-
-    if (isset($_mwp_data['params']['secure'])) {
-        if (is_array($_mwp_data['params']['secure'])) {
-            $secureParams = $_mwp_data['params']['secure'];
-            foreach ($secureParams as $key => $value) {
-                $secureParams[$key] = base64_decode($value);
-            }
-            $_mwp_data['params']['secure'] = $secureParams;
-        } else {
-            $_mwp_data['params']['secure'] = base64_decode($_mwp_data['params']['secure']);
-        }
-        if ($decrypted = $mmb_core->_secure_data($_mwp_data['params']['secure'])) {
-            $decrypted = maybe_unserialize($decrypted);
-            if (is_array($decrypted)) {
-                foreach ($decrypted as $key => $val) {
-                    if (!is_numeric($key)) {
-                        $_mwp_data['params'][$key] = $val;
-                    }
-                }
-                unset($_mwp_data['params']['secure']);
-            } else {
-                $_mwp_data['params']['secure'] = $decrypted;
-            }
-        }
-
-        if (!$decrypted && $mmb_core->get_random_signature() !== false) {
-            require_once dirname(__FILE__).'/src/PHPSecLib/Crypt/AES.php';
-            $cipher = new Crypt_AES(CRYPT_AES_MODE_ECB);
-            $cipher->setKey($mmb_core->get_random_signature());
-            $decrypted                           = $cipher->decrypt($_mwp_data['params']['secure']);
-            $_mwp_data['params']['account_info'] = json_decode($decrypted, true);
-        }
-    }
-
-    $logData = array(
-        'action'            => $_mwp_data['action'],
-        'action_parameters' => $_mwp_data['params'],
-        'action_settings'   => $_mwp_data['setting'],
-    );
-
-    if (!empty($_mwp_data['setting'])) {
-        $logData['settings'] = $_mwp_data['setting'];
-    }
-
-    mwp_logger()->debug('Master request: "{action}"', $logData);
-}
-
 function mmb_response($response = false, $success = true)
 {
     if (!$success) {
@@ -546,16 +456,7 @@ function mmb_remove_site($params)
 
 function mmb_stats_get($params)
 {
-    global $mmb_core;
-    $mmb_core->get_stats_instance();
-
-    mwp_context()->requireWpRewrite();
-    mwp_context()->requireTaxonomies();
-    mwp_context()->requirePostTypes();
-    mwp_context()->requireTheme();
-
-    $data = array_merge(mmb_pre_init_stats($params), $mmb_core->stats_instance->get($params));
-    mmb_response($data, true);
+    mmb_response(mmb_pre_init_stats($params), true);
 }
 
 function mmb_worker_header()
@@ -585,12 +486,14 @@ function mmb_pre_init_stats($params)
 
     $mmb_core->get_stats_instance();
 
+    mwp_logger()->debug('Starting get_stats after everything was required');
+
     return $mmb_core->stats_instance->pre_init_stats($params);
 }
 
 function mwp_datasend($params = array())
 {
-    global $mmb_core, $_mmb_item_filter, $_mmb_options;
+    global $mmb_core, $_mmb_options;
 
     $_mmb_remoteurl = get_option('home');
     $_mmb_remoteown = isset($_mmb_options['dataown']) && !empty($_mmb_options['dataown']) ? $_mmb_options['dataown'] : false;
@@ -599,8 +502,6 @@ function mwp_datasend($params = array())
         return;
     }
 
-    $_mmb_item_filter['pre_init_stats'] = array('core_update', 'hit_counter', 'comments', 'backups', 'posts', 'drafts', 'scheduled', 'site_statistics');
-    $_mmb_item_filter['get']            = array('updates', 'errors');
     $mmb_core->get_stats_instance();
 
     $filter = array(
@@ -626,10 +527,7 @@ function mwp_datasend($params = array())
         ),
     );
 
-    $pre_init_data = $mmb_core->stats_instance->pre_init_stats($filter);
-    $init_data     = $mmb_core->stats_instance->get($filter);
-
-    $data              = array_merge($init_data, $pre_init_data);
+    $data              = $mmb_core->stats_instance->pre_init_stats($filter);
     $data['server_ip'] = $_SERVER['SERVER_ADDR'];
     $data['uhost']     = php_uname('n');
     $hash              = $mmb_core->get_secure_hash();
@@ -1295,8 +1193,7 @@ function mmb_more_reccurences($schedules)
 
 function mmb_call_scheduled_remote_upload($args)
 {
-    global $mmb_core, $_wp_using_ext_object_cache;
-    $_wp_using_ext_object_cache = false;
+    global $mmb_core;
 
     $mmb_core->get_backup_instance();
     if (isset($args['task_name'])) {
@@ -1306,8 +1203,7 @@ function mmb_call_scheduled_remote_upload($args)
 
 function mwp_check_notifications()
 {
-    global $mmb_core, $_wp_using_ext_object_cache;
-    $_wp_using_ext_object_cache = false;
+    global $mmb_core;
 
     $mmb_core->get_stats_instance();
     $mmb_core->stats_instance->check_notifications();

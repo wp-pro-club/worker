@@ -24,13 +24,16 @@ class Monolog_Processor_MemoryUsageProcessor extends Monolog_Processor_MemoryPro
      */
     public function callback(array $record)
     {
-        $bytes     = memory_get_usage($this->realUsage);
-        $formatted = self::formatBytes($bytes);
+        $bytesReal     = memory_get_usage(true);
+        $formattedReal = self::formatBytes($bytesReal);
+        $bytes         = memory_get_usage(false);
+        $formatted     = self::formatBytes($bytes);
 
         $record['extra'] = array_merge(
             $record['extra'],
             array(
-                'memory_usage' => $formatted,
+                'memory_usage'      => $formatted,
+                'memory_real_usage' => $formattedReal,
             )
         );
 

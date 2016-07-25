@@ -82,6 +82,11 @@ class Monolog_Formatter_LegacyGelfMessageFormatter extends Monolog_Formatter_Nor
             unset($record['extra']['memory_usage']);
         }
 
+        if (isset($record['extra']['memory_real_usage'])) {
+            $record['extra']['mem_real_usage'] = $record['extra']['memory_real_usage'];
+            unset($record['extra']['memory_real_usage']);
+        }
+
         if (isset($record['extra']['memory_peak_usage'])) {
             $record['extra']['mem_peak_usage'] = $record['extra']['memory_peak_usage'];
             unset($record['extra']['memory_peak_usage']);

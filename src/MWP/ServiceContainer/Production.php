@@ -76,7 +76,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
     {
         $mapper = new MWP_Action_Registry();
 
-        $mapper->addDefinition('do_upgrade', new MWP_Action_Definition('mmb_do_upgrade', array('hook_name' => 'init', 'hook_priority' => 9999)));
+        $mapper->addDefinition('do_upgrade', new MWP_Action_Definition('mmb_do_upgrade', array('hook_name' => 'wp_loaded', 'hook_priority' => PHP_INT_MAX)));
         $mapper->addDefinition('remove_site', new MWP_Action_Definition('mmb_remove_site'));
         $mapper->addDefinition('backup_clone', new MWP_Action_Definition('mmb_backup_now'));
         $mapper->addDefinition('restore', new MWP_Action_Definition('mmb_restore_now'));
@@ -135,6 +135,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         $mapper->addDefinition('backup_stats', new MWP_Action_Definition(array('MWP_Action_IncrementalBackup_Stats', 'execute')));
         $mapper->addDefinition('upload_cloner', new MWP_Action_Definition(array('MWP_Action_IncrementalBackup_UploadCloner', 'execute')));
         $mapper->addDefinition('get_table_schema', new MWP_Action_Definition(array('MWP_Action_IncrementalBackup_GetTableSchema', 'execute')));
+        $mapper->addDefinition('get_view_schema', new MWP_Action_Definition(array('MWP_Action_IncrementalBackup_GetViewSchema', 'execute')));
         $mapper->addDefinition('delete_dump_files', new MWP_Action_Definition(array('MWP_Action_IncrementalBackup_DeleteDumpFiles', 'execute')));
 
         return $mapper;

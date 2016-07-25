@@ -271,39 +271,66 @@ class MMB_Stats extends MMB_Core
         return $stats;
     }
 
+    public function get_backup_stats()
+    {
+        $tasks = get_option('mwp_backup_tasks');
+
+        if (empty($tasks) || !is_array($tasks)) {
+            return array();
+        }
+
+        $stats = array();
+
+        foreach ($tasks as $task_name => $info) {
+            if (empty($info['task_results']) || !is_array($info['task_results'])) {
+                continue;
+            }
+
+            foreach ($info['task_results'] as $key => $result) {
+                if (!isset($result['server']) || isset($result['error'])) {
+                    continue;
+                }
+
+                if (!isset($result['server']['file_path']) || $info['task_args']['del_host_file']) {
+                    continue;
+                }
+
+                if (file_exists($result['server']['file_path'])) {
+                    continue;
+                }
+
+                $info['task_results'][$key]['error'] = 'Backup created but manually removed from server.';
+            }
+
+            $stats[$task_name] = $info['task_results'];
+        }
+
+        return $stats;
+    }
+
     public function get_backups($stats, $options = array())
     {
-        $stats['mwp_backups'] = $this->get_backup_instance()->get_backup_stats();
+        $stats['mwp_backups'] = $this->get_backup_stats();
 
         return $stats;
     }
 
     public function get_backup_req($stats = array(), $options = array())
     {
-        $stats['mwp_backups']    = $this->get_backup_instance()->get_backup_stats();
-        $stats['mwp_backup_req'] = $this->get_backup_instance()->check_backup_compat();
+        $stats['mwp_backups'] = $this->get_backup_stats();
+
+        if ($_SERVER['HTTP_MWP_PROTOCOL']) {
+            $stats['mwp_backup_req'] = $this->get_backup_instance()->check_backup_compat();
+        }
 
         return $stats;
     }
 
     public function get_updates($stats, $options = array())
     {
-        $premium = array();
-        if (isset($options['premium']) && $options['premium']) {
-            $premium_updates = array();
-            $upgrades        = apply_filters('mwp_premium_update_notification', $premium_updates);
-            if (!empty($upgrades)) {
-                foreach ($upgrades as $data) {
-                    if (isset($data['Name'])) {
-                        $premium[] = $data['Name'];
-                    }
-                }
-                $stats['premium_updates'] = $upgrades;
-            }
-        }
         if (isset($options['themes']) && $options['themes']) {
             $this->get_installer_instance();
-            $upgrades = $this->installer_instance->get_upgradable_themes($premium);
+            $upgrades = $this->installer_instance->get_upgradable_themes();
             if (!empty($upgrades)) {
                 $stats['upgradable_themes'] = $upgrades;
             }
@@ -311,7 +338,7 @@ class MMB_Stats extends MMB_Core
 
         if (isset($options['plugins']) && $options['plugins']) {
             $this->get_installer_instance();
-            $upgrades = $this->installer_instance->get_upgradable_plugins($premium);
+            $upgrades = $this->installer_instance->get_upgradable_plugins();
             if (!empty($upgrades)) {
                 $stats['upgradable_plugins'] = $upgrades;
             }
@@ -426,8 +453,15 @@ class MMB_Stats extends MMB_Core
         include_once ABSPATH.'wp-includes/update.php';
         include_once ABSPATH.'wp-admin/includes/update.php';
 
+        mwp_logger()->debug('Started initializing stats');
+
         $stats = $this->mmb_parse_action_params('pre_init_stats', $params, $this);
+
+        mwp_logger()->debug('Finished initializing stats');
+
         extract($params);
+
+        mwp_logger()->debug('Extracted parameters...');
 
         /** @var $wpdb wpdb */
         global $wpdb, $wp_version, $mmb_plugin_dir;
@@ -438,10 +472,15 @@ class MMB_Stats extends MMB_Core
         $stats['wordpress_locale_pckg'] = get_locale();
         $stats['php_version']           = phpversion();
         $stats['mysql_version']         = $wpdb->db_version();
-        $stats['server_functionality']  = $this->get_backup_instance()->getServerInformationForStats();
         $stats['wp_multisite']          = $this->mmb_multisite;
         $stats['network_install']       = $this->network_admin_install;
-        $stats['cookies']               = $this->get_stat_cookies();
+
+        mwp_logger()->debug('Started encrypting cookies...');
+
+        $stats['cookies'] = $this->get_stat_cookies();
+
+        mwp_logger()->debug('Finished encrypting cookies...');
+
         $stats['admin_usernames']       = $this->getUserList();
         $stats['site_title']            = get_bloginfo('name');
         $stats['site_tagline']          = get_bloginfo('description');
@@ -494,49 +533,21 @@ class MMB_Stats extends MMB_Core
             $stats['maintenance'] = true;
         }
 
-        return $stats;
-    }
-
-    public function get($params)
-    {
-        include_once ABSPATH.'wp-includes/update.php';
-        include_once ABSPATH.'wp-admin/includes/update.php';
-
-        $stats = $this->mmb_parse_action_params('get', $params, $this);
-
-        $update_check = array();
-        $num          = extract($params);
-        if ($refresh == 'transient') {
-            $update_check = apply_filters('mwp_premium_update_check', $update_check);
-            if (!empty($update_check)) {
-                foreach ($update_check as $update) {
-                    if (is_array($update['callback'])) {
-                        $update_result = call_user_func(
-                            array(
-                                $update['callback'][0],
-                                $update['callback'][1],
-                            )
-                        );
-                    } else {
-                        if (is_string($update['callback'])) {
-                            $update_result = call_user_func($update['callback']);
-                        }
-                    }
-                }
-            }
-        }
-
         if ($this->mmb_multisite) {
-            $stats = $this->get_multisite($stats);
+            $stats = array_merge($stats, $this->get_multisite($stats));
         }
+
+        mwp_logger()->debug('Started getting extended stats (overhead)');
 
         update_option('mmb_stats_filter', $params['item_filter']['get_stats']);
-        $stats = apply_filters('mmb_stats_filter', $stats);
+        mmb_get_extended_info($stats, $params['item_filter']['get_stats']);
+
+        mwp_logger()->debug('Finished getting extended stats (overhead)');
 
         return $stats;
     }
 
-    public function get_multisite($stats = array())
+    public function get_multisite()
     {
         /** @var $wpdb wpdb */
         global $current_user, $wpdb;
@@ -544,9 +555,10 @@ class MMB_Stats extends MMB_Core
         $network_blogs = $wpdb->get_results("select `blog_id`, `site_id` from `{$wpdb->blogs}`");
         $user_id       = $GLOBALS['mwp_user_id'] ? $GLOBALS['mwp_user_id'] : false;
 
+        $stats = array();
+
         if ($this->network_admin_install == '1' && is_super_admin($user_id)) {
             if (!empty($network_blogs)) {
-                $blogs = array();
                 foreach ($network_blogs as $details) {
                     if ($details->site_id == $details->blog_id) {
                         continue;
@@ -622,6 +634,10 @@ class MMB_Stats extends MMB_Core
 
     public function get_stat_cookies()
     {
+        if (!defined('WPE_APIKEY')) {
+            return array();
+        }
+
         global $current_user;
 
         $cookies = $this->get_auth_cookies($current_user->ID);
@@ -649,7 +665,7 @@ class MMB_Stats extends MMB_Core
 
     public function get_initial_stats()
     {
-        global $mmb_plugin_dir, $_mmb_item_filter, $wpdb;
+        global $mmb_plugin_dir, $wpdb;
 
         $stats = array(
             'email'           => get_option('admin_email'),
@@ -683,9 +699,6 @@ class MMB_Stats extends MMB_Core
 
         $stats['writable'] = $this->is_server_writable();
 
-        $_mmb_item_filter['pre_init_stats'] = array('core_update', 'hit_counter', 'comments', 'backups', 'posts', 'drafts', 'scheduled', 'site_statistics');
-        $_mmb_item_filter['get']            = array('updates', 'errors');
-
         $filter = array(
             'refresh'     => 'transient',
             'item_filter' => array(
@@ -710,10 +723,7 @@ class MMB_Stats extends MMB_Core
             ),
         );
 
-        $pre_init_data = $this->pre_init_stats($filter);
-        $init_data     = $this->get($filter);
-
-        $stats['initial_stats'] = array_merge($init_data, $pre_init_data);
+        $stats['initial_stats'] = $this->pre_init_stats($filter);
 
         return $stats;
     }

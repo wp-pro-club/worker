@@ -12,39 +12,59 @@ ManageWP is the ultimate WordPress productivity tool, allowing you to efficientl
 
 == Description ==
 
-[ManageWP](https://managewp.com/ "Manage Multiple WordPress Websites") is a revolutionary service designed to automate most of your daily tasks when managing multiple WordPress websites, allowing you to use your time on more important matters.
+[ManageWP](https://managewp.com/ "Manage Multiple WordPress Websites") helps you save time and nerves by automating your workflow, so you could focus on things that matter. It is fast, secure and free for an unlimited number of websites.
 
 = Everything in One Place =
-Just the hassle of logging into each of your websites is enough to ruin your day. With ManageWP the data from all of your sites is compiled and shown on a single easy to use dashboard, allowing you to check up on your websites in a single glance.
+Just the hassle of logging into each of your websites is enough to ruin your day. With ManageWP the data from all of your sites is compiled and shown on a single easy to use dashboard, allowing you to check up on your websites in a single glance. We like the one-click concept, anything that takes longer than that is too much, so we introduced the one-click login, one-click updates and one-click management. That means that with just 1 (yes that’s right) click, you can update all of your websites, clear spam and manage your comments. In addition to this we have added the option of managing collaborators, now making it even easier to work together with your team and clients. All of this in one place.
 
-= One-click Management =
-With all the data on a single dashboard, all it takes is one click to perform plugin and theme updates on multiple websites. Got comments? Everything is on one single list. Or maybe you want to clean spam comments, table overhead or post revisions from all of your websites? It takes a single click.
-
-= Backup & Restore =
-Never leave home without a backup. With the scheduled backup tasks to remote destinations such as Amazon S3, Dropbox and Google Drive you will always have an up-to-date backup which you can use to restore your website if something happened to it (yeah, we know it was YOU who messed up the CSS!)
-
-= Quick and Easy Migration =
-Want to know how easy is to migrate a website with ManageWP? Pick a source website, pick a destination website, click Go. Yeah, it's that easy.
-
-= Uptime Monitoring =
-Be the first to know when your website is down with both email and SMS notifications, and get your website back online before anyone else notices.
-
-= SEO & Keyword Ranking =
-Be on top of your website rankings and figure out which keywords work best for you.
+= Monthly Cloud Backups =
+Having a reliable backup is the backbone of any business. That’s why we decided to offer a free monthly backup for all of your websites. And since our backups are incremental and run off-site, it will successfully back up even the most problematic websites. Our free backups include monthly scheduled backup, off-site storage, 1-click restore, US/EU storage choice and the option to exclude files and folders.
 
 = Client Reports =
-Keep track of what you're doing for your clients and dazzle them with a summary of your hard work.
+It’s important to us to know that you can summarize your hard work and wrap it all up in a neat, beautifully designed Client Report and send it to your clients to showcase your work. For this reason, we have added a version of this add-on to our free set of add-ons. This includes; your logo, intro & outro text, notes, reports from all activated ManageWP tools, PDF download, templates, ManageWP watermark and sending from a ManageWP email.
+
+= Performance and Security Checks =
+Performance and security are both important aspects of successfully running a websites. An unsecure website can be decremental for any business, and the most important part of security is knowing when your website is in danger. The Security Check makes it easy for you to make sure that all of your sites are clean, and if any files become infected you will be able to spot them on time. On the other hand, the Performance Check gives you insight into what is happening with your website and how it’s performing. It gives you a breakdown of the factors that are affecting your website. You can see each individual factor and its grade, as well as giving you recommendations on how to improve your website performance.
+
+= Work On Your Websites With Ease =
+All websites need a bit of pruning from time to time, and this is where Maintenance Mode and Code Snippets can help you tremendously. In just seconds you can activate our Maintenance Mode on any number of websites, your users will stay informed on what is happening and you will avoid losing precious website traffic, while working on your website updates or fixing issues. Code Snippets are also there to make working on your website easy, you can use them to extend the functionality of your website whilst keeping resources required to a minimum. For developers, this powerful tool gives you incredible freedom when managing your websites.
+
+= Keep Track With Analytics =
+All Google accounts that you need connected to Google Analytics on one dashboard. With a glance you can keep track of all results, finding out what worked for you and what didn’t. Always be in the know when it comes to your websites, now with just one widget in ManageWP.
+
+= Premium Add-ons =
+We have a set of premium add-ons as well, that you can pick and choose and utilize on websites you want to. No more bulk paying for add-ons you don’t use, and prices for add-ons start at only $1/mo.
+
+= Uptime Monitor =
+Be the first to know when your website is down with both email and SMS notifications, and get your website back online before anyone else notices.
+
+= SEO Ranking =
+Be on top of your website rankings and figure out which keywords work best for you, as well as keeping on eye on your competitors. This way you will know how well you stack up against them.
+
+= Advanced Client Reports =
+Keep track of what you're doing for your clients and dazzle them with a summary of your hard work. The Advanced Client Reports include everything in the free version plus an array of additional perks like, no ManageWP watermark, sending from your email and bulk report generator for multiple clients.
+
+= Scheduled Backup, Restore & Clone =
+Never leave home without a backup. With the scheduled backup tasks to remote destinations such as our Amazon S3 (both EU and US compliant) or your own, Dropbox and Google Drive you will always have an up-to-date backup which you can use to restore your website if something happened to it.  Not to mention that our backup reliability is 97%, with the improved incremental backup, that takes away troubles such as server timeouts. We have also included the option of letting you handpick what you want to include or exclude in your backups.  With our premium backup you get our Clone add-on, that makes website migration a one-click operation. Pick a source website, pick a destination website, click Go. Yeah, it's that easy.
+
+= White Label =
+Rename or completely hide the ManageWP Worker plugin. Clients don’t need to know what you are using to manage their websites. You can use the White label tool to impress your clients and charge the rate you deserve.
 
 = Is This All? =
-No way! We've got a bunch of other awesome features, both free and premium, you can check out on our [ManageWP Features & Pricing Page](https://managewp.com/plans-and-pricing "ManageWP Plans & Pricing")
+No way! We've got a bunch of other awesome features, both free and premium, you can check out on our [ManageWP Features Page](https://managewp.com/features "ManageWP Features")
 
-Check out the [ManageWP promo video](https://www.youtube.com/watch?v=C5nBQJQIfH4).
+Check out the [ManageWP promo video](https://vimeo.com/120034595).
 
-https://www.youtube.com/watch?v=C5nBQJQIfH4
-
-ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress news site"), community project capturing the pulse of the WordPress community.
+https://vimeo.com/120034595
 
 == Changelog ==
+
+= 4.2.6 =
+
+- Improvement: Reduced Worker memory footprint during sync by 50%.
+- Improvement: Better handle available updates in some special cases.
+- Fix: Fixed sync issues with sites using Shield plugin.
+- Fix: Correctly remove child themes in some special cases.
 
 = 4.2.2 =
 
@@ -547,29 +567,23 @@ ManageWP is also the creator of [ManageWP.org](https://managewp.org/ "WordPress 
 
 == Installation ==
 
-1. Upload the plugin folder to your `/wp-content/plugins/` folder
-2. Go to the Plugins page in your website's WP-admin area and activate ManageWP Worker
-3. Visit [ManageWP.com](https://managewp.com/ "ManageWP")
-4. Sign up and add your website
+1. Create an account on [ManageWP.com](https://managewp.com/ "Manage Multiple WordPress Sites")
+2. Follow the steps to add your first website
+3. Celebrate!
 
-Alternatively
-
-1. Visit [ManageWP.com](https://managewp.com/ "Manage Multiple WordPress Sites") and sign up
-2. ManageWP will notify you the Worker plugin is not installed and offer a link for quick installation
-
-For detailed instructions, you can read our [User Guide](http://managewp.com/user-guide/how-to-use-managewp/getting-started/adding-your-website-to-managewp/ "Add your website to ManageWP")
+Seriously, it's that easy! If you want more detailed instructions, check out our [User Guide](https://managewp.com/guide/getting-started/add-website-managewp-dashboard "Add your website to ManageWP")
 
 == Screenshots ==
 
-1. ManageWP dashboard with available upgrades, site statistics and management functions.
-2. Easily take a closer look to each of your websites.
-3. No need for additional maintenance plugins.
-4. Backup your website in couple of clicks. Choose one of the external locations or keep your backups on your server.
-5. Choose between Database and Full backups of your website. Select how many backups you want to keep and exclude any folder you don't need backed up.
-6. Clone your website using backup files generated by ManageWP. Feel free to use external locations, as well.
-7. Clone over your existing website selected from the list.
-8. Or, you can clone to any location using New website as your destination.
-9. Manage your websites without your users even knowing you are using ManageWP. Experience our White label feature.
+1. ManageWP dashboard with a thumbnail view of 20 websites
+2. Assign tags and stars to organize your websites
+3. A summary of available updates and health of all your websites
+4. Track your website performance regularly, so you could know right away if something goes wrong with it
+5. Managing plugins and themes is as easy with 100 websites as it's with 3 websites
+6. Client Report is a customizable executive summary of everything you've done for your clients
+7. Cloud backups with detailed information about each restore point
+8. Uptime Monitor logs up and down events, and notifies you via email and SMS
+9. Aside from being able to white label the ManageWP Worker plugin, you can also add a support form on the client's website
 
 == Upgrade Notice ==
 
@@ -604,19 +618,15 @@ You should have received a copy of the GNU General Public License along with Man
 
 = Is ManageWP secure? =
 
-Yes. We invest heavilly in our security and in four years and serving over quarter a million websites we did not have a single security incident. Also we invest in a [white hat security program](https://managewp.com/white-hat-reward) with the purpose of preventing security issues.
+Yes. All of our code is developed in-house and we have a top notch security team. With over a quarter of a million websites managed since 2012 we did not have a single security incident. We've accomplished this through high standards, vigilance and the help of security researchers, through our [white hat security program](https://managewp.com/white-hat-reward).
 
 = Will ManageWP work with sites spread on different hosting accounts? =
 
-Yes.
+Yes. ManageWP plays nice with all major hosts, and 99% of the small ones.
 
 = Does ManageWP work with WordPress.com sites? =
 
 No. ManageWP works only with self-hosted WordPress sites.
-
-= Can I try all features for free? =
-
-Absolutely. We've got a no-strings-attached 14-day Trial.
 
 = I have problems adding my site =
 
@@ -624,11 +634,11 @@ Make sure you use the latest version of the Worker plugin on the site you are tr
 
 = How does ManageWP compare to backup plugins like BackupBuddy, Backwpup, UpdraftPlus, WP-DB-Backup ? =
 
-There is a limit to what a PHP based backup can do (as are all these plugins) but we believe that our backup system is one of if not the most robust solution on the market.
+There is a limit to what a PHP based backup can do, that's why we've built a completely different backup - cloud based, incremental, it keeps working long after others have failed.
 
 = How does ManageWP compare with clone plugins like Duplicator, WP Migrate DB, All-in-One WP Migration, XCloner ? =
 
-We are confident that our clone system is the most reliable one on the market featuring highly sophisticated technology allowing for the easiest and most efficient site clone/migration on the market.
+These solutions are simple A-B cloning solutions that tend to break in critical moments. ManageWP does it more intelligently. We first upload the backup archive to a cloud infrastructure that we control, and then we transfer it to the destination website. This effectively compartmentalizes the process into two separate steps, making the whole cloning experience much more robust and stress free.
 
 = Does ManageWP work with caching plugins like W3 Total Cache or WP Super Cache =
 
@@ -638,6 +648,4 @@ Yes.
 
 Yes. In most cases where there are conflicts we document them on our [known issues](https://managewp.com/user-guide/known-issues) page.
 
-= How does ManageWP compare to services like InfiniteWP, MainWP, CMS Commander, IControlWP ? =
-
-We believe that our product is technologically more advanced and more mature. In some cases ManageWP has been the inspiration for these services, and we continue to innovate. For more information please refer to [this comment](http://wpchat.com/t/security-and-centralized-wordpress-management-ie-managewp-jetpack-etc/505/6?u=vprelovac)
+Got more questions? [Contact us!](http://managewp.com/contact "ManageWP Contact")

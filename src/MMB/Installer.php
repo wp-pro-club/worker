@@ -261,20 +261,6 @@ class MMB_Installer extends MMB_Core
             }
         }
 
-        if (!empty($premium_upgrades)) {
-            $premium_upgrades = $this->upgrade_premium($premium_upgrades);
-            if (!empty($premium_upgrades)) {
-                if (!empty($upgrades)) {
-                    foreach ($upgrades as $key => $val) {
-                        if (isset($premium_upgrades[$key])) {
-                            $upgrades[$key] = array_merge_recursive($upgrades[$key], $premium_upgrades[$key]);
-                        }
-                    }
-                } else {
-                    $upgrades = $premium_upgrades;
-                }
-            }
-        }
         @ob_clean();
         $this->mmb_maintenance_mode(false);
 
@@ -477,16 +463,12 @@ class MMB_Installer extends MMB_Core
             include_once ABSPATH.'wp-includes/update.php';
         }
 
-        @wp_update_plugins();
-
         $return = array();
 
         if (class_exists('Plugin_Upgrader')) {
             /** @handled class */
             $upgrader = new Plugin_Upgrader(mwp_container()->getUpdaterSkin());
             $result   = $upgrader->bulk_upgrade(array_keys($plugins));
-
-            @wp_update_plugins();
 
             if (!empty($result)) {
                 foreach ($result as $plugin_slug => $plugin_info) {
@@ -525,14 +507,10 @@ class MMB_Installer extends MMB_Core
             include_once ABSPATH.'wp-includes/update.php';
         }
 
-        @wp_update_themes();
-
         if (class_exists('Theme_Upgrader')) {
             /** @handled class */
             $upgrader = new Theme_Upgrader(mwp_container()->getUpdaterSkin());
             $result   = $upgrader->bulk_upgrade($themes);
-
-            @wp_update_themes();
 
             $return  = array();
             if (!empty($result)) {
@@ -560,128 +538,7 @@ class MMB_Installer extends MMB_Core
         }
     }
 
-    public function upgrade_premium($premium = false)
-    {
-        if (!class_exists('WP_Upgrader')) {
-            include_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
-        }
-
-        if (!$premium || empty($premium)) {
-            return array(
-                'error' => 'No premium files for upgrade.',
-            );
-        }
-
-        $upgrader       = false;
-        $pr_update      = array();
-        $themes         = array();
-        $plugins        = array();
-        $result         = array();
-        $premium_update = array();
-        $premium_update = apply_filters('mwp_premium_perform_update', $premium_update);
-        if (!empty($premium_update)) {
-            foreach ($premium as $pr) {
-                foreach ($premium_update as $key => $update) {
-                    $update = array_change_key_case($update, CASE_LOWER);
-                    if ($update['name'] == $pr['name']) {
-                        // prepare bulk updates for premiums that use WordPress upgrader
-                        if (isset($update['type'])) {
-                            if ($update['type'] == 'plugin') {
-                                if (isset($update['slug']) && !empty($update['slug'])) {
-                                    $plugins[$update['slug']] = $update;
-                                }
-                            }
-
-                            if ($update['type'] == 'theme') {
-                                if (isset($update['template']) && !empty($update['template'])) {
-                                    $themes[$update['template']] = $update;
-                                }
-                            }
-                        }
-                    } else {
-                        unset($premium_update[$key]);
-                    }
-                }
-            }
-
-            // try default wordpress upgrader
-            if (!empty($plugins)) {
-                $updateplugins = $this->upgrade_plugins(array_values($plugins));
-                if (!empty($updateplugins) && isset($updateplugins['upgraded'])) {
-                    foreach ($premium_update as $key => $update) {
-                        $update = array_change_key_case($update, CASE_LOWER);
-                        foreach ($updateplugins['upgraded'] as $slug => $upgrade) {
-                            if (isset($update['slug']) && $update['slug'] == $slug) {
-                                if ($upgrade == 1) {
-                                    unset($premium_update[$key]);
-                                }
-
-                                $pr_update['plugins']['upgraded'][md5($update['name'])] = $upgrade;
-                            }
-                        }
-                    }
-                }
-            }
-
-            //try direct install with overwrite
-            if (!empty($premium_update)) {
-                foreach ($premium_update as $update) {
-                    $update        = array_change_key_case($update, CASE_LOWER);
-                    $update_result = false;
-                    if (isset($update['url'])) {
-                        if (defined('WP_INSTALLING') && file_exists(ABSPATH.'.maintenance')) {
-                            $pr_update[$update['type'].'s']['upgraded'][md5($update['name'])] = 'Site under maintanace.';
-                        }
-
-                        /** @handled class */
-                        $upgrader_skin              = new WP_Upgrader_Skin();
-                        $upgrader_skin->done_header = true;
-                        /** @handled class */
-                        $upgrader = new WP_Upgrader();
-                        @$update_result = $upgrader->run(
-                            array(
-                                'package'           => $update['url'],
-                                'destination'       => isset($update['type']) && $update['type'] == 'theme' ? WP_CONTENT_DIR.'/themes' : WP_PLUGIN_DIR,
-                                'clear_destination' => true,
-                                'clear_working'     => true,
-                                'is_multi'          => true,
-                                'hook_extra'        => array(),
-                            )
-                        );
-                        $update_result = !$update_result || is_wp_error($update_result) ? $this->mmb_get_error($update_result) : 1;
-                    } else {
-                        if (isset($update['callback'])) {
-                            if (is_array($update['callback'])) {
-                                $update_result = call_user_func(array($update['callback'][0], $update['callback'][1]));
-                            } else {
-                                if (is_string($update['callback'])) {
-                                    $update_result = call_user_func($update['callback']);
-                                } else {
-                                    $update_result = 'Upgrade function "'.$update['callback'].'" does not exists.';
-                                }
-                            }
-
-                            $update_result = $update_result !== true ? $this->mmb_get_error($update_result) : 1;
-                        } else {
-                            $update_result = 'Bad update params.';
-                        }
-                    }
-
-                    $pr_update[$update['type'].'s']['upgraded'][md5($update['name'])] = $update_result;
-                }
-            }
-
-            return $pr_update;
-        } else {
-            foreach ($premium as $pr) {
-                $result[$pr['type'].'s']['upgraded'][md5($pr['name'])] = 'This premium update is not registered.';
-            }
-
-            return $result;
-        }
-    }
-
-    public function get_upgradable_plugins($filter = array())
+    public function get_upgradable_plugins()
     {
         $current = $this->mmb_get_transient('update_plugins');
 
@@ -692,9 +549,6 @@ class MMB_Installer extends MMB_Core
             }
             foreach ($current->response as $plugin_path => $plugin_data) {
                 $data = get_plugin_data(WP_PLUGIN_DIR.'/'.$plugin_path, false, false);
-                if (isset($data['Name']) && in_array($data['Name'], $filter)) {
-                    continue;
-                }
 
                 if (strlen($data['Name']) > 0 && strlen($data['Version']) > 0) {
                     $current->response[$plugin_path]->name        = $data['Name'];
@@ -711,7 +565,7 @@ class MMB_Installer extends MMB_Core
         }
     }
 
-    public function get_upgradable_themes($filter = array())
+    public function get_upgradable_themes()
     {
         if (function_exists('wp_get_themes')) {
             $all_themes     = wp_get_themes();
@@ -721,10 +575,6 @@ class MMB_Installer extends MMB_Core
             if (!empty($current->response)) {
                 foreach ((array)$all_themes as $theme_template => $theme_data) {
                     if (!empty($theme_data['Parent Theme'])) {
-                        continue;
-                    }
-
-                    if (isset($theme_data->Name) && in_array($theme_data->Name, $filter)) {
                         continue;
                     }
 
@@ -1016,7 +866,7 @@ class MMB_Installer extends MMB_Core
                     switch_theme($item['path'], $item['stylesheet']);
                     break;
                 case 'delete':
-                    $result = delete_theme($item['path']);
+                    $result = delete_theme($item['stylesheet']);
                     break;
                 default:
                     break;

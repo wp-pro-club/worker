@@ -26,8 +26,14 @@ class MWP_EventListener_FixCompatibility implements Symfony_EventDispatcher_Even
                 array('fixAllInOneSecurity', -10000),
                 array('fixWpSimpleFirewall', -10000),
                 array('fixDuoFactor', -10000),
+                array('fixShieldUserManagementICWP', -10000),
             ),
         );
+    }
+
+    public function fixShieldUserManagementICWP()
+    {
+        $this->context->addFilter('icwp-wpsf-visitor_is_whitelisted', '__return_true');
     }
 
     public function fixWpSuperCache()

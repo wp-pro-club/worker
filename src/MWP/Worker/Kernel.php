@@ -55,6 +55,9 @@ class MWP_Worker_Kernel
         $actionName = $request->getAction();
         $params     = $request->getParams();
         $context    = $container->getWordPressContext();
+        if (!is_array($params)) {
+            $params = array();
+        }
 
         if (!$request->isMasterRequest()) {
             // This is a public request. Allow the plugin to hook onto WordPress.
