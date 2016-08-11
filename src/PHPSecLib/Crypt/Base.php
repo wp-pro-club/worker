@@ -444,7 +444,7 @@ class Crypt_Base
      *
      * @access public
      */
-    public function Crypt_Base($mode = CRYPT_MODE_CBC)
+    public function __construct($mode = CRYPT_MODE_CBC)
     {
         $const_crypt_mode = 'CRYPT_'.$this->const_namespace.'_MODE';
 

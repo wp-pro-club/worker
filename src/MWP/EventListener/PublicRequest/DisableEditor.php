@@ -33,11 +33,16 @@ class MWP_EventListener_PublicRequest_DisableEditor implements Symfony_EventDisp
      */
     public function onPublicRequest()
     {
-        if (!$this->brand->isActive() || !$this->brand->isDisallowEdit()) {
+        if (!$this->brand->isActive() || (!$this->brand->isDisallowEdit() && !$this->brand->isDisableCodeEditor())) {
             return;
         }
 
         $this->context->setConstant('DISALLOW_FILE_EDIT', true, false);
+
+        if (!$this->brand->isDisallowEdit()) {
+            return;
+        }
+
         $this->context->setConstant('DISALLOW_FILE_MODS', true, false);
     }
 }

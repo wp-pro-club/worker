@@ -344,6 +344,14 @@ class MMB_Stats extends MMB_Core
             }
         }
 
+        if (isset($options['translations']) && $options['translations']) {
+            $this->get_installer_instance();
+            $upgrades = $this->installer_instance->get_upgradable_translations();
+            if (!empty($upgrades)) {
+                $stats['upgradable_translations'] = $upgrades;
+            }
+        }
+
         return $stats;
     }
 

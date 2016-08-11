@@ -484,7 +484,7 @@ class Crypt_RSA
      * @return Crypt_RSA
      * @access public
      */
-    public function Crypt_RSA()
+    public function __construct()
     {
         if (!class_exists('Math_BigInteger')) {
             require_once dirname(__FILE__).'/../Math/BigInteger.php';

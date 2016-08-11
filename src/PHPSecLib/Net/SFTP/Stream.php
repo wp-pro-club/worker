@@ -149,7 +149,7 @@ class Net_SFTP_Stream
      *
      * @access public
      */
-    public function Net_SFTP_Stream()
+    public function __construct()
     {
         if (defined('NET_SFTP_STREAM_LOGGING')) {
             echo "__construct()\r\n";
@@ -190,11 +190,11 @@ class Net_SFTP_Stream
 
         if ($host[0] == '$') {
             $host = substr($host, 1);
-            global $$host;
-            if (!is_object($$host) || get_class($$host) != 'Net_SFTP') {
+            $host = $GLOBALS[$host];
+            if (!is_object($host) || get_class($host) != 'Net_SFTP') {
                 return false;
             }
-            $this->sftp = $$host;
+            $this->sftp = $host;
         } else {
             if (isset($this->context)) {
                 $context = stream_context_get_options($this->context);

@@ -54,6 +54,13 @@ class MWP_Worker_Brand
     private $disallowEdit = false;
 
     /**
+     * Disable code editor only
+     *
+     * @var bool
+     */
+    private $disableCodeEditor = false;
+
+    /**
      * One of the CONTACT_TYPE_* constants.
      *
      * @var int
@@ -89,6 +96,13 @@ class MWP_Worker_Brand
      */
     private $adminEmail;
 
+    /**
+     * Whether or not the worker branding was sent from Orion.
+     *
+     * @var bool|null
+     */
+    private $fromOrion;
+
     public function __construct(MWP_WordPress_Context $context)
     {
         $this->context = $context;
@@ -104,12 +118,14 @@ class MWP_Worker_Brand
         $this->authorUrl   = empty($brand['author_url']) ? null : $brand['author_url'];
         $this->hide        = isset($brand['hide']) ? $brand['hide'] : $this->hide;
         // "Dissalow" [sic] edit .
-        $this->disallowEdit  = isset($brand['dissalow_edit']) ? $brand['dissalow_edit'] : $this->disallowEdit;
-        $this->textForClient = empty($brand['text_for_client']) ? null : $brand['text_for_client'];
-        $this->contactType   = isset($brand['email_or_link']) ? (int) $brand['email_or_link'] : self::CONTACT_TYPE_NONE;
-        $this->adminEmail    = empty($brand['admin_email']) ? null : $brand['admin_email'];
+        $this->disallowEdit      = isset($brand['dissalow_edit']) ? $brand['dissalow_edit'] : $this->disallowEdit;
+        $this->textForClient     = empty($brand['text_for_client']) ? null : $brand['text_for_client'];
+        $this->contactType       = isset($brand['email_or_link']) ? (int)$brand['email_or_link'] : self::CONTACT_TYPE_NONE;
+        $this->adminEmail        = empty($brand['admin_email']) ? null : $brand['admin_email'];
+        $this->fromOrion         = empty($brand['from_orion']) ? false : $brand['from_orion'];
+        $this->disableCodeEditor = isset($brand['disable_code_editor']) ? $brand['disable_code_editor'] : $this->disableCodeEditor;
 
-        $this->active = isset($brand['active']) ? $brand['active'] : (bool) ($this->name || $this->description || $this->author || $this->authorUrl || $this->hide || $this->disallowEdit || $this->contactType);
+        $this->active = isset($brand['active']) ? $brand['active'] : (bool) ($this->name || $this->description || $this->author || $this->authorUrl || $this->hide || $this->disallowEdit || $this->disableCodeEditor || $this->contactType);
     }
 
     public function isActive()
@@ -166,6 +182,14 @@ class MWP_Worker_Brand
     }
 
     /**
+     * @return boolean
+     */
+    public function isDisableCodeEditor()
+    {
+        return $this->disableCodeEditor;
+    }
+
+    /**
      * @return int
      */
     public function getContactType()
@@ -187,6 +211,14 @@ class MWP_Worker_Brand
     public function getAdminEmail()
     {
         return $this->adminEmail;
+    }
+
+    /**
+     * @return null|bool
+     */
+    public function getFromOrion()
+    {
+        return $this->fromOrion;
     }
 
     /**

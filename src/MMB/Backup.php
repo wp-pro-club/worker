@@ -4272,6 +4272,7 @@ class MMB_Backup extends MMB_Core
             return;
         }
 
+        // This will only get called on WordPress < 3.9
         if (class_exists('wpdb') && function_exists('wp_set_wpdb_vars')) {
             @mysql_close($wpdb->dbh);
             /** @handled class */

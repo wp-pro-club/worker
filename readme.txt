@@ -59,6 +59,16 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.9 =
+
+- New: Support for translation updates.
+- Improvement: White Label option allows to separate editing from install/update.
+- Improvement: Full PHP7 compatibility.
+
+= 4.2.7 =
+
+- Improvement: Detection of child theme updates.
+
 = 4.2.6 =
 
 - Improvement: Reduced Worker memory footprint during sync by 50%.
@@ -68,7 +78,7 @@ https://vimeo.com/120034595
 
 = 4.2.2 =
 
-- Fix: Fixed a bug that showed false positives when updating multiple plugins
+- Fix: Fixed a bug that showed false positives when updating multiple plugins.
 
 = 4.2.1 =
 

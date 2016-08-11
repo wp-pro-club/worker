@@ -220,9 +220,10 @@ class MMB_Installer extends MMB_Core
 
         $params = isset($params['upgrades_all']) ? $params['upgrades_all'] : $params;
 
-        $core_upgrade    = isset($params['wp_upgrade']) ? $params['wp_upgrade'] : array();
-        $upgrade_plugins = isset($params['upgrade_plugins']) ? $params['upgrade_plugins'] : array();
-        $upgrade_themes  = isset($params['upgrade_themes']) ? $params['upgrade_themes'] : array();
+        $core_upgrade         = isset($params['wp_upgrade']) ? $params['wp_upgrade'] : array();
+        $upgrade_plugins      = isset($params['upgrade_plugins']) ? $params['upgrade_plugins'] : array();
+        $upgrade_themes       = isset($params['upgrade_themes']) ? $params['upgrade_themes'] : array();
+        $upgrade_translations = isset($params['upgrade_translations']) ? $params['upgrade_translations'] : false;
 
         $upgrades         = array();
         $premium_upgrades = array();
@@ -259,6 +260,10 @@ class MMB_Installer extends MMB_Core
             if (!empty($theme_temps)) {
                 $upgrades['themes'] = $this->upgrade_themes($theme_temps);
             }
+        }
+
+        if (!empty($upgrade_translations)) {
+            $upgrades['translations'] = $this->upgrade_translations();
         }
 
         @ob_clean();
@@ -538,6 +543,37 @@ class MMB_Installer extends MMB_Core
         }
     }
 
+    public function upgrade_translations()
+    {
+        include_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
+
+        if (class_exists('Language_Pack_Upgrader')) {
+            /** @handled class */
+            $upgrader = new Language_Pack_Upgrader(mwp_container()->getUpdaterSkin());
+            $result = $upgrader->bulk_upgrade();
+
+            if (!empty($result)) {
+                $return = 1;
+                foreach ($result as $translate_tmp => $translate_info) {
+                    if (is_wp_error($translate_info) || empty($translate_info)) {
+                        $return = $this->mmb_get_error($translate_info);
+                        break;
+                    }
+                }
+
+                return array('upgraded' => $return);
+            } else {
+                return array(
+                    'error' => 'Upgrade failed.',
+                );
+            }
+        } else {
+            return array(
+                'error' => 'WordPress update required first',
+            );
+        }
+    }
+
     public function get_upgradable_plugins()
     {
         $current = $this->mmb_get_transient('update_plugins');
@@ -572,22 +608,26 @@ class MMB_Installer extends MMB_Core
             $upgrade_themes = array();
 
             $current = $this->mmb_get_transient('update_themes');
-            if (!empty($current->response)) {
-                foreach ((array)$all_themes as $theme_template => $theme_data) {
-                    if (!empty($theme_data['Parent Theme'])) {
+
+            if (empty($current->response)) {
+                return $upgrade_themes;
+            }
+
+            foreach ((array)$all_themes as $theme_template => $theme_data) {
+                foreach ($current->response as $current_themes => $theme) {
+                    if ($theme_data->Stylesheet !== $current_themes) {
                         continue;
                     }
 
-                    foreach ($current->response as $current_themes => $theme) {
-                        if ($theme_data->Template == $current_themes) {
-                            if (strlen($theme_data->Name) > 0 && strlen($theme_data->Version) > 0) {
-                                $current->response[$current_themes]['name']        = $theme_data->Name;
-                                $current->response[$current_themes]['old_version'] = $theme_data->Version;
-                                $current->response[$current_themes]['theme_tmp']   = $theme_data->Template;
-                                $upgrade_themes[]                                  = $current->response[$current_themes];
-                            }
-                        }
+                    if (strlen($theme_data->Name) === 0 || strlen($theme_data->Version) === 0) {
+                        continue;
                     }
+
+                    $current->response[$current_themes]['name']        = $theme_data->Name;
+                    $current->response[$current_themes]['old_version'] = $theme_data->Version;
+                    $current->response[$current_themes]['theme_tmp']   = $theme_data->Stylesheet;
+
+                    $upgrade_themes[] = $current->response[$current_themes];
                 }
             }
         } else {
@@ -621,6 +661,31 @@ class MMB_Installer extends MMB_Core
         }
 
         return $upgrade_themes;
+    }
+
+    public function get_upgradable_translations()
+    {
+        $updates = array(
+            'core'    => array(),
+            'plugins' => array(),
+            'themes'  => array(),
+        );
+
+        $transients = array('update_core' => 'core', 'update_plugins' => 'plugins', 'update_themes' => 'themes');
+
+        foreach ($transients as $transient => $type) {
+            $transient = get_site_transient($transient);
+
+            if (empty($transient->translations)) {
+                continue;
+            }
+
+            foreach ($transient->translations as $translation) {
+                $updates[$type][] = (object)$translation;
+            }
+        }
+
+        return $updates;
     }
 
     public function get($args)

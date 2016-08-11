@@ -53,12 +53,10 @@ class MWP_Backup_MysqlDump_DumpFactory
      */
     public static function isShellExecAvailable()
     {
-        if (ini_get('safe_mode') == true || !function_exists('shell_exec')) {
+        if (in_array(strtolower(ini_get('safe_mode')), array('on', '1'), true) || !function_exists('shell_exec')) {
             return false;
         }
 
-        $disabledFunctions = array_map('trim', explode(',', ini_get('disable_functions')));
-
-        return !in_array('shell_exec', $disabledFunctions);
+        return true;
     }
 }

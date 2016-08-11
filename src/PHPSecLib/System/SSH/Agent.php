@@ -116,7 +116,7 @@ class System_SSH_Agent_Identity
      * @return System_SSH_Agent_Identity
      * @access private
      */
-    public function System_SSH_Agent_Identity($fsock)
+    public function __construct($fsock)
     {
         $this->fsock = $fsock;
     }
@@ -237,7 +237,7 @@ class System_SSH_Agent
      * @return System_SSH_Agent
      * @access public
      */
-    public function System_SSH_Agent()
+    public function __construct()
     {
         switch (true) {
             case isset($_SERVER['SSH_AUTH_SOCK']):

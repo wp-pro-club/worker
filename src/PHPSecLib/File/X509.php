@@ -311,7 +311,7 @@ class File_X509
      * @return File_X509
      * @access public
      */
-    public function File_X509()
+    public function __construct()
     {
         if (!class_exists('Math_BigInteger')) {
             require_once dirname(__FILE__).'/../Math/BigInteger.php';
@@ -4473,7 +4473,8 @@ class File_X509
     public function revoke($serial, $date = null)
     {
         if (isset($this->currentCert['tbsCertList'])) {
-            if (is_array($rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates', true))) {
+            $rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates', true);
+            if (is_array($rclist)) {
                 if ($this->_revokedCertificate($rclist, $serial) === false) { // If not yet revoked
                     if (($i = $this->_revokedCertificate($rclist, $serial, true)) !== false) {
                         if (!empty($date)) {
@@ -4499,7 +4500,8 @@ class File_X509
      */
     public function unrevoke($serial)
     {
-        if (is_array($rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates'))) {
+        $rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates');
+        if (is_array($rclist)) {
             if (($i = $this->_revokedCertificate($rclist, $serial)) !== false) {
                 unset($rclist[$i]);
                 $rclist = array_values($rclist);
@@ -4570,7 +4572,8 @@ class File_X509
      */
     public function removeRevokedCertificateExtension($serial, $id)
     {
-        if (is_array($rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates'))) {
+        $rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates');
+        if (is_array($rclist)) {
             if (($i = $this->_revokedCertificate($rclist, $serial)) !== false) {
                 return $this->_removeExtension($id, "tbsCertList/revokedCertificates/$i/crlEntryExtensions");
             }
@@ -4645,7 +4648,8 @@ class File_X509
     public function setRevokedCertificateExtension($serial, $id, $value, $critical = false, $replace = true)
     {
         if (isset($this->currentCert['tbsCertList'])) {
-            if (is_array($rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates', true))) {
+            $rclist = &$this->_subArray($this->currentCert, 'tbsCertList/revokedCertificates', true);
+            if (is_array($rclist)) {
                 if (($i = $this->_revokedCertificate($rclist, $serial, true)) !== false) {
                     return $this->_setExtension($id, $value, $critical, $replace, "tbsCertList/revokedCertificates/$i/crlEntryExtensions");
                 }

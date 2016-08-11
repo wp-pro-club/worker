@@ -562,11 +562,18 @@ function mwp_datasend($params = array())
                 }
 
                 /* rebrand worker or set default */
-                $brand = '';
+                $brand              = '';
+                $worker_brand       = get_option('mwp_worker_brand');
+                $current_from_orion = !empty($worker_brand['from_orion']) ? $worker_brand['from_orion'] : false;
+
                 if (isset($settings['worker_brand']) && $settings['worker_brand']) {
                     $brand = $settings['worker_brand'];
                 }
-                update_option("mwp_worker_brand", $brand);
+
+                if(!$current_from_orion) {
+                    update_option("mwp_worker_brand", $brand);
+                }
+
                 /* change worker version */
                 $w_version = @$settings['worker_updates']['version'];
                 $w_url     = @$settings['worker_updates']['url'];
@@ -1244,6 +1251,15 @@ function mmb_edit_autoupdate_plugins_themes($params)
 
 function mmb_worker_brand($params)
 {
+    $worker_brand       = get_option('mwp_worker_brand');
+    $current_from_orion = !empty($worker_brand['from_orion']) ? $worker_brand['from_orion'] : false;
+    $from_orion         = !empty($params['brand']['from_orion']) ? $params['brand']['from_orion'] : false;
+
+    if ($from_orion === false && $current_from_orion !== $from_orion) {
+        mmb_response(true, true); //@TODO: Maybe return mmb_response(true, false)
+        return;
+    }
+
     update_option("mwp_worker_brand", $params['brand']);
     mmb_response(true, true);
 }
@@ -1269,6 +1285,7 @@ function mmb_plugin_actions()
         $mmode = get_option('mwp_maintenace_mode');
         if (!empty($mmode)) {
             if (isset($mmode['active']) && $mmode['active'] == true) {
+                $status_code = empty($mmode['status_code']) ? 503 : $mmode['status_code'];
                 if (!empty($current_user->ID) && !empty($mmode['hidecaps'])) {
                     $usercaps = array();
                     if (isset($current_user->caps) && !empty($current_user->caps)) {
@@ -1284,7 +1301,11 @@ function mmb_plugin_actions()
                                 ob_end_clean();
                                 ob_end_flush();
                                 if (!headers_sent()) {
-                                    header(sprintf('%s 503 Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1'), true, 503);
+                                    if($status_code == 503){
+                                        header(sprintf('%s 503 Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1'), true, $status_code);
+                                    } else {
+                                        header(sprintf('%s %d Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1', $status_code), true, $status_code);
+                                    }
                                 }
                                 die($mmode['template']);
                             }
@@ -1292,7 +1313,11 @@ function mmb_plugin_actions()
                     }
                 } else {
                     if (!headers_sent()) {
-                        header(sprintf('%s 503 Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1'), true, 503);
+                        if($status_code == 503) {
+                            header(sprintf('%s 503 Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1'), true, 503);
+                        } else {
+                            header(sprintf('%s %d Service Unavailable', isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1', $status_code), true, $status_code);
+                        }
                     }
                     die($mmode['template']);
                 }
