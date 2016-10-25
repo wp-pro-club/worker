@@ -46,7 +46,7 @@ class MWP_EventListener_MasterRequest_SetRequestSettings implements Symfony_Even
         // Alternate WP cron can run on 'init' hook.
         $this->context->removeAction('init', 'wp_cron');
 
-        $doNotUseExtCache = !empty($data['wpNoExtObjectCache']);
+        $doNotUseExtCache = !empty($data['wpNoExtObjectCacheNew']);
 
         if ($doNotUseExtCache) {
             $this->context->set('_wp_using_ext_object_cache', false);

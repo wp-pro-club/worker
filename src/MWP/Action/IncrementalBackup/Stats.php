@@ -42,6 +42,7 @@ class MWP_Action_IncrementalBackup_Stats extends MWP_Action_IncrementalBackup_Ab
         $statistics['comments_approved'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->comments} c INNER JOIN {$wpdb->posts} p ON c.comment_post_ID = p.ID WHERE comment_approved = 1 AND p.post_status = 'publish'");
         $latestPost                      = $wpdb->get_row("SELECT * FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish' ORDER BY ID DESC LIMIT 1");
         $statistics['latest_post_title'] = isset($latestPost->post_title) ? $latestPost->post_title : '';
+        $statistics['latest_post_title'] = seems_utf8($statistics['latest_post_title']) ? $statistics['latest_post_title'] : utf8_encode($statistics['latest_post_title']);
         $statistics['latest_post_url']   = sprintf("%s?p=%d", get_site_url(), $latestPost->ID);
         $statistics['wp_version']        = $this->container->getWordPressContext()->getVersion();
         $statistics['worker_version']    = $this->container->getParameter('worker_version');

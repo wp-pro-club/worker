@@ -59,6 +59,18 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.12 =
+
+- Fix: Plugin/theme updates not showing correctly in some cases.
+
+= 4.2.11 =
+
+- Fix: Connectivity issues caused by non-UTF-8 characters.
+
+= 4.2.10 =
+
+- Improvement: Symlink support for Orion backups.
+
 = 4.2.9 =
 
 - New: Support for translation updates.

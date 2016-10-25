@@ -22,21 +22,25 @@ class MWP_Http_JsonResponse extends MWP_Http_Response
 
         if (!is_string($content)) {
             $invalidValues = array();
-            $this->checkUtf8($this->content, $invalidValues);
-            throw new MWP_Worker_Exception(MWP_Worker_Exception::JSON_RESPONSE_EXCEPTION, 'Got non-UTF8 string.', array(
-                'invalidValues' => $invalidValues,
-            ));
+            $this->fixUtf8($this->content, $invalidValues);
+
+            if (is_array($this->content) && count($invalidValues) > 0) {
+                $this->content['utf8FixedPaths'] = $invalidValues;
+            }
+
+            $content = json_encode($this->content);
         }
 
         return "\n" . $content;
     }
 
-    private function checkUtf8(&$structure, array &$found = array(), &$walkedRefs = array(), array $path = array('_'))
+    private function fixUtf8(&$structure, array &$found = array(), &$walkedRefs = array(), array $path = array('_'))
     {
         switch ($type = gettype($structure)) {
             case 'string':
                 if (!seems_utf8($structure)) {
                     $found[implode('.', $path)] = urlencode($structure);
+                    $structure = utf8_encode($structure);
                 }
                 break;
             /** @noinspection PhpMissingBreakStatementInspection */
@@ -54,7 +58,7 @@ class MWP_Http_JsonResponse extends MWP_Http_Response
                 foreach ($structure as $key => &$value) {
                     $valuePath   = $path;
                     $valuePath[] = $key;
-                    $this->checkUtf8($value, $found, $walkedRefs, $valuePath);
+                    $this->fixUtf8($value, $found, $walkedRefs, $valuePath);
                 }
                 break;
         }

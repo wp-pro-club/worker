@@ -58,7 +58,7 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
             $offset       = isset($directory['offset']) ? $directory['offset'] : 0;
             $limit        = isset($directory['limit']) ? $directory['limit'] : 0;
 
-            $realPath = $this->getRealPath($decodedPath);
+            $realPath = $this->getRealPath($decodedPath, true);
             if (!file_exists($realPath)) {
                 $result[$relativePath] = false;
                 continue;
@@ -121,7 +121,7 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
         foreach ($files as $file) {
             $relativePath = $file['path'];
             $decodedPath  = $file['pathEncoded'] ? $this->pathDecode($relativePath) : $relativePath;
-            $realPath     = $this->getRealPath($decodedPath);
+            $realPath = $this->getRealPath($decodedPath, true);
 
             if (!file_exists($realPath)) {
                 $result[] = array(

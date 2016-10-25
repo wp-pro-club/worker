@@ -90,9 +90,16 @@ class MMB_Helper
 
     public function mmb_get_transient($option_name)
     {
+        global $wp_version;
+
         if (trim($option_name) == '') {
             return false;
         }
+
+        if (version_compare($wp_version, '3.4', '>')) {
+            return get_site_transient($option_name);
+        }
+
         if (!empty($this->mmb_multisite)) {
             return $this->mmb_get_sitemeta_transient($option_name);
         }
@@ -104,7 +111,14 @@ class MMB_Helper
 
     public function mmb_delete_transient($option_name)
     {
+        global $wp_version;
+
         if (trim($option_name) == '') {
+            return;
+        }
+
+        if (version_compare($wp_version, '3.4', '>')) {
+            delete_site_transient($option_name);
             return;
         }
 

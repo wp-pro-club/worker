@@ -26,12 +26,18 @@ class MWP_Action_IncrementalBackup_Abstract extends MWP_Action_Abstract
     /**
      * Get file real path given a path relative to WordPress root.
      *
-     * @param $relativePath
+     * @param string $relativePath
+     *
+     * @param bool   $virtual Don't do real filesystem touch, simulate instead
      *
      * @return string
      */
-    protected function getRealPath($relativePath)
+    protected function getRealPath($relativePath, $virtual = false)
     {
+        if ($virtual) {
+            return $this->virtualGetAbsolutePath(untrailingslashit(ABSPATH).'/'.$relativePath);
+        }
+
         return realpath(untrailingslashit(ABSPATH).'/'.$relativePath);
     }
 
@@ -41,6 +47,34 @@ class MWP_Action_IncrementalBackup_Abstract extends MWP_Action_Abstract
     private function getServerStatistics()
     {
         return MWP_IncrementalBackup_Model_ServerStatistics::factory();
+    }
+
+    /**
+     * @param string $path
+     *
+     * @return string
+     */
+    private function virtualGetAbsolutePath($path)
+    {
+        $path      = str_replace(array('/', '\\'), '/', $path);
+        $parts     = array_filter(explode('/', $path), 'strlen');
+        $absolutes = array();
+        foreach ($parts as $part) {
+            if ('.' == $part) {
+                continue;
+            }
+            if ('..' == $part) {
+                array_pop($absolutes);
+            } else {
+                $absolutes[] = $part;
+            }
+        }
+
+        if (strpos($path, '/') === 0) {
+            return '/'.implode(DIRECTORY_SEPARATOR, $absolutes);
+        } else {
+            return implode(DIRECTORY_SEPARATOR, $absolutes);
+        }
     }
 
 }
