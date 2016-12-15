@@ -73,7 +73,7 @@ class MWP_EventListener_MasterRequest_SetRequestSettings implements Symfony_Even
         $context->setConstant('WP_NETWORK_ADMIN', false);
         $context->setConstant('WP_USER_ADMIN', false);
         $context->setConstant('WP_BLOG_ADMIN', true);
-        $context->addAction('wp_loaded', array($this, 'adminWpLoaded'), PHP_INT_MAX - 1);
+        $context->addAction('wp_loaded', array($this, 'adminWpLoaded'), MAX_PRIORITY_HOOK - 1);
     }
 
     /**
@@ -88,8 +88,8 @@ class MWP_EventListener_MasterRequest_SetRequestSettings implements Symfony_Even
             // WP_MAX_MEMORY_LIMIT
             @ini_set('memory_limit', '256M');
         }
-        $this->context->addFilter('http_response', array($this, 'captureCacheUpdateCall'), PHP_INT_MAX, 3);
-        $this->context->addFilter('pre_http_request', array($this, 'interceptCacheUpdateCall'), PHP_INT_MAX, 3);
+        $this->context->addFilter('http_response', array($this, 'captureCacheUpdateCall'), MAX_PRIORITY_HOOK, 3);
+        $this->context->addFilter('pre_http_request', array($this, 'interceptCacheUpdateCall'), MAX_PRIORITY_HOOK, 3);
         require_once $this->context->getConstant('ABSPATH').'wp-admin/includes/admin.php';
         $context->doAction('admin_init');
         global $wp_current_filter;

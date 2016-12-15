@@ -76,7 +76,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
     {
         $mapper = new MWP_Action_Registry();
 
-        $mapper->addDefinition('do_upgrade', new MWP_Action_Definition('mmb_do_upgrade', array('hook_name' => 'wp_loaded', 'hook_priority' => PHP_INT_MAX)));
+        $mapper->addDefinition('do_upgrade', new MWP_Action_Definition('mmb_do_upgrade', array('hook_name' => 'wp_loaded', 'hook_priority' => MAX_PRIORITY_HOOK)));
         $mapper->addDefinition('remove_site', new MWP_Action_Definition('mmb_remove_site'));
         $mapper->addDefinition('backup_clone', new MWP_Action_Definition('mmb_backup_now'));
         $mapper->addDefinition('restore', new MWP_Action_Definition('mmb_restore_now'));
@@ -115,7 +115,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         $mapper->addDefinition('destroy_sessions', new MWP_Action_Definition(array('MWP_Action_DestroySessions', 'execute')));
         $mapper->addDefinition('check_connection', new MWP_Action_Definition(array('MWP_Action_CheckConnection', 'execute')));
         $mapper->addDefinition('clear_transient', new MWP_Action_Definition(array('MWP_Action_ClearTransient', 'execute')));
-        $mapper->addDefinition('get_stats', new MWP_Action_Definition(array('MWP_Action_GetStats', 'execute'), array('hook_name' => 'wp_loaded', 'hook_priority' => PHP_INT_MAX)));
+        $mapper->addDefinition('get_stats', new MWP_Action_Definition(array('MWP_Action_GetStats', 'execute'), array('hook_name' => 'wp_loaded', 'hook_priority' => MAX_PRIORITY_HOOK)));
         $mapper->addDefinition('get_stats_read', new MWP_Action_Definition(array('MWP_Action_GetStats', 'execute')));
         $mapper->addDefinition('get_components_stats', new MWP_Action_Definition(array('MWP_Action_GetComponentsStats', 'execute')));
 

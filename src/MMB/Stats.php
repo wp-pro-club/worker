@@ -19,9 +19,10 @@ class MMB_Stats extends MMB_Core
         global $wpdb;
         $siteStatistics = array();
         $prefix         = $wpdb->prefix;
+        $basePrefix     = $wpdb->base_prefix;
 
         if (!empty($options['users'])) {
-            $siteStatistics['users'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$prefix}users");
+            $siteStatistics['users'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$basePrefix}users");
         }
 
         if (!empty($options['approvedComments'])) {

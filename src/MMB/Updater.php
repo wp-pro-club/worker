@@ -28,19 +28,19 @@ class MMB_Updater
         $autoUpdateCore = get_option('mwp_core_autoupdate');
 
         if ($autoUpdateCore === 'never') {
-            add_filter('allow_minor_auto_core_updates', '__return_false', PHP_INT_MAX);
-            add_filter('allow_major_auto_core_updates', '__return_false', PHP_INT_MAX);
+            add_filter('allow_minor_auto_core_updates', '__return_false', MAX_PRIORITY_HOOK);
+            add_filter('allow_major_auto_core_updates', '__return_false', MAX_PRIORITY_HOOK);
         } elseif ($autoUpdateCore === 'minor') {
-            add_filter('allow_minor_auto_core_updates', '__return_true', PHP_INT_MAX);
-            add_filter('allow_major_auto_core_updates', '__return_false', PHP_INT_MAX);
+            add_filter('allow_minor_auto_core_updates', '__return_true', MAX_PRIORITY_HOOK);
+            add_filter('allow_major_auto_core_updates', '__return_false', MAX_PRIORITY_HOOK);
         } elseif ($autoUpdateCore === 'major') {
-            add_filter('allow_minor_auto_core_updates', '__return_true', PHP_INT_MAX);
-            add_filter('allow_major_auto_core_updates', '__return_true', PHP_INT_MAX);
+            add_filter('allow_minor_auto_core_updates', '__return_true', MAX_PRIORITY_HOOK);
+            add_filter('allow_major_auto_core_updates', '__return_true', MAX_PRIORITY_HOOK);
         }
 
-        add_filter('auto_update_plugin', array($updater, 'updatePlugin'), PHP_INT_MAX, 2);
-        add_filter('auto_update_theme', array($updater, 'updateTheme'), PHP_INT_MAX, 2);
-        add_filter('auto_update_translation', array($updater, 'updateTranslation'), PHP_INT_MAX, 1);
+        add_filter('auto_update_plugin', array($updater, 'updatePlugin'), MAX_PRIORITY_HOOK, 2);
+        add_filter('auto_update_theme', array($updater, 'updateTheme'), MAX_PRIORITY_HOOK, 2);
+        add_filter('auto_update_translation', array($updater, 'updateTranslation'), MAX_PRIORITY_HOOK, 1);
     }
 
     public function updatePlugin($update, $item)

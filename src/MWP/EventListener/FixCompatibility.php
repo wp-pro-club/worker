@@ -27,8 +27,27 @@ class MWP_EventListener_FixCompatibility implements Symfony_EventDispatcher_Even
                 array('fixWpSimpleFirewall', -10000),
                 array('fixDuoFactor', -10000),
                 array('fixShieldUserManagementICWP', -10000),
+                array('fixSidekickPlugin', -10000),
+                array('fixSpamShield', -10000),
             ),
         );
+    }
+
+    public function fixSpamShield()
+    {
+        if (!defined('WPSS_IP_BAN_CLEAR')) {
+            define('WPSS_IP_BAN_CLEAR', true);
+        }
+    }
+
+    public function fixSidekickPlugin()
+    {
+        $this->context->addAction('init', array($this, '_fixSidekickPlugin'), -1);
+    }
+
+    public function _fixSidekickPlugin()
+    {
+        $this->removeByPluginClass('admin_init', 'Sidekick', 'redirect', true);
     }
 
     public function fixShieldUserManagementICWP()
@@ -91,6 +110,43 @@ class MWP_EventListener_FixCompatibility implements Symfony_EventDispatcher_Even
 
         /** @handled function */
         MWP_FixCompatibility_ICWP_WPSF();
+    }
+
+    private function removeByPluginClass($tag, $class_name, $functionName, $isAction = false, $priority = 10)
+    {
+        if (!class_exists($class_name)) {
+            return null;
+        }
+
+        global $wp_filter;
+
+        if (empty($wp_filter[$tag][$priority])) {
+            return null;
+        }
+
+        foreach ($wp_filter[$tag][$priority] as $callable) {
+            if (empty($callable['function']) || !is_array($callable['function']) || count($callable['function']) < 2) {
+                continue;
+            }
+
+            if (!is_a($callable['function'][0], $class_name)) {
+                continue;
+            }
+
+            if ($callable['function'][1] !== $functionName) {
+                continue;
+            }
+
+            if ($isAction) {
+                $this->context->removeAction($tag, $callable['function'], $priority);
+            } else {
+                $this->context->removeFilter($tag, $callable['function'], $priority);
+            }
+
+            return $callable['function'];
+        }
+
+        return null;
     }
 }
 

@@ -56,9 +56,10 @@ class MWP_Action_IncrementalBackup_Abstract extends MWP_Action_Abstract
      */
     private function virtualGetAbsolutePath($path)
     {
-        $path      = str_replace(array('/', '\\'), '/', $path);
-        $parts     = array_filter(explode('/', $path), 'strlen');
-        $absolutes = array();
+        $originalPath = $path;
+        $path         = str_replace(array('/', '\\'), '/', $path);
+        $parts        = array_filter(explode('/', $path), 'strlen');
+        $absolutes    = array();
         foreach ($parts as $part) {
             if ('.' == $part) {
                 continue;
@@ -70,7 +71,9 @@ class MWP_Action_IncrementalBackup_Abstract extends MWP_Action_Abstract
             }
         }
 
-        if (strpos($path, '/') === 0) {
+        if (strpos($originalPath, '\\\\') === 0) { // NAS mount
+            return '//'.implode(DIRECTORY_SEPARATOR, $absolutes);
+        } elseif (strpos($path, '/') === 0) {
             return '/'.implode(DIRECTORY_SEPARATOR, $absolutes);
         } else {
             return implode(DIRECTORY_SEPARATOR, $absolutes);
