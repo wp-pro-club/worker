@@ -11,14 +11,14 @@
 class MWP_Event_Events
 {
     /**
-     * Fired if the master response is detected.
+     * Fired if a master request is detected.
      *
      * @see MWP_Event_MasterRequest
      */
     const MASTER_REQUEST = 'kernel.master_request';
 
     /**
-     * Fired if non-master response is detected.
+     * Fired if a non-master request is detected.
      *
      * @see MWP_Event_PublicRequest
      */

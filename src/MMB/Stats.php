@@ -72,7 +72,8 @@ class MMB_Stats extends MMB_Core
                 if (!$current_transient) {
                     $current_transient = $core->updates[0];
                 }
-                if ($current_transient->response == "development" || version_compare($wp_version, $current_transient->current, '<') || $locale !== $current_transient->locale) {
+                // WordPress can actually have an update to the same version and locale if locale has not been updated
+                if ($current_transient->response == 'development' || $current_transient->response == 'upgrade' || version_compare($wp_version, $current_transient->current, '<') || $locale !== $current_transient->locale) {
                     $current_transient->current_version = $wp_version;
                     $stats['core_updates']              = $current_transient;
                 } else {

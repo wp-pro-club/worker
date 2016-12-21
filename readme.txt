@@ -59,6 +59,12 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.15 =
+
+- Fix: Core updates not showing correctly in some cases.
+- Fix: Better memory limit handling.
+- Fix: SpamShield plugin compatibility.
+
 = 4.2.14 =
 
 - Fix: Compatibility with WordPress 4.7.

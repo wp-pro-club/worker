@@ -29,8 +29,30 @@ class MWP_EventListener_FixCompatibility implements Symfony_EventDispatcher_Even
                 array('fixShieldUserManagementICWP', -10000),
                 array('fixSidekickPlugin', -10000),
                 array('fixSpamShield', -10000),
+                array('fixWpSpamShieldBan', -10000),
             ),
         );
+    }
+
+    public function fixWpSpamShieldBan()
+    {
+        $wpss_ubl_cache = $this->context->optionGet('spamshield_ubl_cache');
+
+        if (empty($wpss_ubl_cache)){
+            return;
+        }
+
+        $serverIp = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null;
+
+        foreach ($wpss_ubl_cache as $key => $singleIp) {
+            if ($singleIp !== $serverIp) {
+                continue;
+            }
+
+            unset($wpss_ubl_cache[$key]);
+        }
+
+        $this->context->optionSet('spamshield_ubl_cache', array_values($wpss_ubl_cache));
     }
 
     public function fixSpamShield()

@@ -21,11 +21,6 @@ class MWP_System_Environment
         $this->container = $container;
     }
 
-    public function getMemoryLimit()
-    {
-        return MWP_System_Utils::convertToBytes(ini_get('memory_limit'));
-    }
-
     public function isPdoEnabled()
     {
         if ($this->container->getParameter('disable_pdo')) {

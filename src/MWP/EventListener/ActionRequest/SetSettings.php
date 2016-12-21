@@ -36,7 +36,6 @@ class MWP_EventListener_ActionRequest_SetSettings implements Symfony_EventDispat
         $this->saveWorkerConfiguration($event->getRequest()->getData());
         // Prevent PHP Warning: set_time_limit() has been disabled for security reasons in __FILE__
         @set_time_limit(1800);
-        $this->setMemoryLimit();
         $this->resetVersions();
         $this->migration->migrate();
     }
@@ -67,20 +66,6 @@ class MWP_EventListener_ActionRequest_SetSettings implements Symfony_EventDispat
                 continue;
             }
             $this->context->set($varName, $$varName);
-        }
-    }
-
-    /**
-     * By default, WordPress sets limits of 40MB for regular installations and 64MB for multi-sites.
-     * If the limit is lower, try to increase it a bit here.
-     */
-    private function setMemoryLimit()
-    {
-        $wantedLimit = 64 * 1024 * 1024;
-        $memoryLimit = $this->system->getMemoryLimit();
-
-        if ($memoryLimit !== -1 && $memoryLimit < $wantedLimit) {
-            ini_set('memory_limit', $wantedLimit);
         }
     }
 

@@ -19,7 +19,7 @@ class MWP_System_Utils
      */
     public static function convertToBytes($memoryLimit)
     {
-        $memoryLimit = (string) $memoryLimit;
+        $memoryLimit = (string)$memoryLimit;
 
         if ('-1' === $memoryLimit) {
             return -1;
@@ -50,5 +50,40 @@ class MWP_System_Utils
         }
 
         return $max;
+    }
+
+    public static function getCurrentMemoryLimit()
+    {
+        return MWP_System_Utils::convertToBytes(ini_get('memory_limit'));
+    }
+
+    public static function getWPMemoryLimit()
+    {
+        if (!defined('WP_MEMORY_LIMIT')) {
+            return '64M';
+        }
+
+        return WP_MEMORY_LIMIT;
+    }
+
+    public static function getWPMaxMemoryLimit()
+    {
+        if (!defined('WP_MAX_MEMORY_LIMIT')) {
+            return '256M';
+        }
+
+        return WP_MAX_MEMORY_LIMIT;
+    }
+
+    public static function setMemoryLimit($tryLimit)
+    {
+        $limitValue   = self::convertToBytes($tryLimit);
+        $currentValue = self::getCurrentMemoryLimit();
+
+        if ($currentValue === -1 || $currentValue >= $limitValue) {
+            return;
+        }
+
+        @ini_set('memory_limit', $tryLimit);
     }
 }
