@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: ManageWP Worker plugin allows you to manage your WordPress sites from one dashboard. Visit <a href="https://managewp.com">ManageWP.com</a> for more information.
-Version: 4.2.15
+Version: 4.2.16
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -100,7 +100,7 @@ if (!function_exists('mwp_fail_safe')):
             $userID = (int)$workerSettings['dataown'];
         }
         $body = sprintf("Corrupt ManageWP Worker v%s installation detected. Site URL in question is %s. User email is %s (User ID: %s). Attempting recovery process at %s. The error that caused this:\n\n<pre>%s</pre>", $GLOBALS['MMB_WORKER_VERSION'], $siteUrl, $to, $userID, date('Y-m-d H:i:s'), $fullError);
-        mail('dev@managewp.com', $title, $body, "Content-Type: text/html");
+        mail('recovery@managewp.com', $title, $body, "Content-Type: text/html");
 
         // If we're inside a cron scope, don't attempt to hide this error.
         if (defined('DOING_CRON') && DOING_CRON) {
@@ -489,7 +489,7 @@ if (!class_exists('MwpRecoveryKit', false)):
             if ($lastError = error_get_last()) {
                 $lastErrorMessage = "\n\nLast error: ".$lastError['message'];
             }
-            mail('dev@managewp.com', sprintf("ManageWP Worker recovery aborted on %s", get_option('siteurl')), sprintf("ManageWP Worker v%s. Reason: %s%s", $GLOBALS['MMB_WORKER_VERSION'], $reason, $lastErrorMessage));
+            mail('recovery@managewp.com', sprintf("ManageWP Worker recovery aborted on %s", get_option('siteurl')), sprintf("ManageWP Worker v%s. Reason: %s%s", $GLOBALS['MMB_WORKER_VERSION'], $reason, $lastErrorMessage));
         }
     }
 endif;
@@ -536,7 +536,7 @@ if (!function_exists('mwp_try_recovery')):
 
             // Recovery complete.
             update_option('mwp_recovering', '');
-            mail('dev@managewp.com', sprintf("ManageWP Worker recovered on %s", get_option('siteurl')), sprintf("%d files successfully recovered in this recovery fork of ManageWP Worker v%s. Filesystem method used was <code>%s</code>.\n\n<pre>%s</pre>", count($recoveredFiles), $GLOBALS['MMB_WORKER_VERSION'], get_filesystem_method(), implode("\n", $recoveredFiles)), 'Content-Type: text/html');
+            mail('recovery@managewp.com', sprintf("ManageWP Worker recovered on %s", get_option('siteurl')), sprintf("%d files successfully recovered in this recovery fork of ManageWP Worker v%s. Filesystem method used was <code>%s</code>.\n\n<pre>%s</pre>", count($recoveredFiles), $GLOBALS['MMB_WORKER_VERSION'], get_filesystem_method(), implode("\n", $recoveredFiles)), 'Content-Type: text/html');
         } catch (Exception $e) {
             if ($e->getCode() === 1337) {
                 return false;
@@ -563,8 +563,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.2.15';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2016-12-21 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.2.16';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2016-12-28 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {

@@ -19,7 +19,7 @@ class MWP_Action_ClearTransient extends MWP_Action_Abstract
 
         if (is_array($params['transient'])) {
             foreach ($params['transient'] as $transient) {
-                $cleared = $this->clearTransients($transient['name'], $transient['suffix'], $transient['timeout'], $transient['mask'], $transient['limit']);
+                $cleared = $this->clearTransients($params['prefix'], $transient['name'], $transient['suffix'], $transient['timeout'], $transient['mask'], $transient['limit']);
                 $total['deletedTransients'] += $cleared['deletedTransients'];
                 $total['deletedTransientTimeouts'] += $cleared['deletedTransientTimeouts'];
             }
@@ -28,10 +28,9 @@ class MWP_Action_ClearTransient extends MWP_Action_Abstract
         return $total;
     }
 
-    private function clearTransients($transientType, $suffix, $timeout, $mask, $limit)
+    private function clearTransients($prefix, $transientType, $suffix, $timeout, $mask, $limit)
     {
         $wpdb   = $this->container->getWordPressContext()->getDb();
-        $prefix = $wpdb->prefix;
 
         $timeoutName  = $transientType.$suffix;
         $subStrLength = strlen($timeoutName) + 1;

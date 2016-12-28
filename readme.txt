@@ -59,6 +59,10 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.16 =
+
+- New: Multisite backup support for ManageWP Orion.
+
 = 4.2.15 =
 
 - Fix: Core updates not showing correctly in some cases.
