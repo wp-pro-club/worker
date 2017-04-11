@@ -10,6 +10,13 @@
 
 class MWP_EventListener_ActionException_SetExceptionData implements Symfony_EventDispatcher_EventSubscriberInterface
 {
+    private $configuration;
+
+    function __construct(MWP_Worker_Configuration $configuration)
+    {
+        $this->configuration = $configuration;
+    }
+
     public static function getSubscribedEvents()
     {
         return array(
@@ -37,9 +44,24 @@ class MWP_EventListener_ActionException_SetExceptionData implements Symfony_Even
         $event->setData($data);
     }
 
+    private function getExtraDataForWorkerException(MWP_Worker_Exception $exception, $verbose)
+    {
+        if (!$verbose) {
+            return array();
+        }
+
+        $extraData = array();
+
+        if ($exception->getCode() === MWP_Worker_Exception::CONNECTION_PUBLIC_KEY_EXISTS) {
+            $extraData['publicKey'] = $this->configuration->getPublicKey();
+        }
+
+        return $extraData;
+    }
+
     private function getDataForWorkerException(MWP_Worker_Exception $exception, $verbose)
     {
-        return array(
+        return $this->getExtraDataForWorkerException($exception, $verbose) + array(
             'context' => $exception->getContext(),
             'type'    => $exception->getErrorName(),
         ) + $this->getDataForGenericException($exception, $verbose);

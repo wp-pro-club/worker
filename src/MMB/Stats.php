@@ -22,7 +22,15 @@ class MMB_Stats extends MMB_Core
         $basePrefix     = $wpdb->base_prefix;
 
         if (!empty($options['users'])) {
-            $siteStatistics['users'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$basePrefix}users");
+            if (!$this->mmb_multisite) {
+                $siteStatistics['users'] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$basePrefix}users");
+            } else {
+                $siteStatistics['users'] = count(get_users(
+                    array(
+                        'blog_id' => $wpdb->blogid,
+                    )
+                ));
+            }
         }
 
         if (!empty($options['approvedComments'])) {
@@ -563,7 +571,7 @@ class MMB_Stats extends MMB_Core
         global $current_user, $wpdb;
         $user_blogs    = get_blogs_of_user($current_user->ID);
         $network_blogs = $wpdb->get_results("select `blog_id`, `site_id` from `{$wpdb->blogs}`");
-        $user_id       = $GLOBALS['mwp_user_id'] ? $GLOBALS['mwp_user_id'] : false;
+        $user_id       = !empty($GLOBALS['mwp_user_id']) ? $GLOBALS['mwp_user_id'] : false;
 
         $stats = array();
 

@@ -45,7 +45,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         $dispatcher->addSubscriber(new MWP_EventListener_ActionRequest_SetSettings($this->getWordPressContext(), $this->getSystemEnvironment(), $this->getMigration()));
         $dispatcher->addSubscriber(new MWP_EventListener_ActionRequest_LogRequest($this->getLogger()));
 
-        $dispatcher->addSubscriber(new MWP_EventListener_ActionException_SetExceptionData());
+        $dispatcher->addSubscriber(new MWP_EventListener_ActionException_SetExceptionData($this->getConfiguration()));
         $dispatcher->addSubscriber(new MWP_EventListener_ActionException_MultipartException($this->getParameter('multipart_boundary')));
 
         $dispatcher->addSubscriber(new MWP_EventListener_ActionResponse_SetActionData());
@@ -83,7 +83,7 @@ class MWP_ServiceContainer_Production extends MWP_ServiceContainer_Abstract
         $mapper->addDefinition('create_post', new MWP_Action_Definition('mmb_post_create', array('hook_name' => 'init', 'hook_priority' => 9999)));
         $mapper->addDefinition('update_worker', new MWP_Action_Definition('mmb_update_worker_plugin'));
         $mapper->addDefinition('change_post_status', new MWP_Action_Definition('mmb_change_post_status', array('hook_name' => 'init', 'hook_priority' => 9999)));
-        $mapper->addDefinition('install_addon', new MWP_Action_Definition('mmb_install_addon', array('hook_name' => 'init', 'hook_priority' => 9999)));
+        $mapper->addDefinition('install_addon', new MWP_Action_Definition('mmb_install_addon', array('hook_name' => 'wp_loaded', 'hook_priority' => MAX_PRIORITY_HOOK)));
         $mapper->addDefinition('get_comments', new MWP_Action_Definition('mmb_get_comments', array('hook_name' => 'init', 'hook_priority' => 9999)));
         $mapper->addDefinition('bulk_action_comments', new MWP_Action_Definition('mmb_bulk_action_comments', array('hook_name' => 'init', 'hook_priority' => 9999)));
         $mapper->addDefinition('replyto_comment', new MWP_Action_Definition('mmb_reply_comment', array('hook_name' => 'init', 'hook_priority' => 9999)));

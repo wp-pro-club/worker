@@ -459,21 +459,6 @@ function mmb_stats_get($params)
     mmb_response(mmb_pre_init_stats($params), true);
 }
 
-function mmb_worker_header()
-{
-    global $mmb_core, $current_user;
-
-    if (!headers_sent()) {
-        if (isset($current_user->ID)) {
-            $expiration = time() + apply_filters('auth_cookie_expiration', 10800, $current_user->ID, false);
-        } else {
-            $expiration = time() + 10800;
-        }
-
-        setcookie(MMB_XFRAME_COOKIE, md5(MMB_XFRAME_COOKIE), $expiration, COOKIEPATH, COOKIE_DOMAIN, false, true);
-        $_COOKIE[MMB_XFRAME_COOKIE] = md5(MMB_XFRAME_COOKIE);
-    }
-}
 
 function mmb_pre_init_stats($params)
 {
@@ -528,7 +513,7 @@ function mwp_datasend($params = array())
     );
 
     $data              = $mmb_core->stats_instance->pre_init_stats($filter);
-    $data['server_ip'] = $_SERVER['SERVER_ADDR'];
+    $data['server_ip'] = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : null;
     $data['uhost']     = php_uname('n');
     $hash              = $mmb_core->get_secure_hash();
 

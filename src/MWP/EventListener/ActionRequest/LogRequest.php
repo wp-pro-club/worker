@@ -21,14 +21,25 @@ class MWP_EventListener_ActionRequest_LogRequest implements Symfony_EventDispatc
     public static function getSubscribedEvents()
     {
         return array(
-            MWP_Event_Events::ACTION_REQUEST => array('onActionRequest', -200),
+            MWP_Event_Events::ACTION_REQUEST  => array('onActionRequest', -200),
+            MWP_Event_Events::ACTION_RESPONSE => array('onActionResponse', -200),
         );
     }
 
     public function onActionRequest(MWP_Event_ActionRequest $event)
     {
         $request = $event->getRequest();
-        $this->logger->debug('Master request: "{action}"', array(
+        $this->logger->debug('Started master request: "{action}"', array(
+            'action'  => $request->getAction(),
+            'params'  => $request->getParams(),
+            'setting' => $request->getSetting(),
+        ));
+    }
+
+    public function onActionResponse(MWP_Event_ActionResponse $event)
+    {
+        $request = $event->getRequest();
+        $this->logger->debug('Finished master request: "{action}"', array(
             'action'  => $request->getAction(),
             'params'  => $request->getParams(),
             'setting' => $request->getSetting(),
