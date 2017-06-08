@@ -230,14 +230,19 @@ class MWP_IncrementalBackup_Database_StreamableQuerySequenceDump
 
         foreach ($row as $columnName => $value) {
             $type = $columns[$columnName]['Type'];
+
+            // Used to determine if the column is enum in case some of the allowed values contain reserved type identifiers
+            $trimmedType = strtolower(trim($type));
+
             // If it should not be enclosed
             if ($value === null) {
                 $values[] = 'null';
-            } elseif (strpos($type, 'int') !== false
-                || strpos($type, 'float') !== false
-                || strpos($type, 'double') !== false
-                || strpos($type, 'decimal') !== false
-                || strpos($type, 'bool') !== false
+            } elseif (strpos($trimmedType, 'enum') !== 0 &&
+                (strpos($type, 'int') !== false
+                    || strpos($type, 'float') !== false
+                    || strpos($type, 'double') !== false
+                    || strpos($type, 'decimal') !== false
+                    || strpos($type, 'bool') !== false)
             ) {
                 $values[] = $value;
             } elseif (strpos($type, 'blob') !== false) {

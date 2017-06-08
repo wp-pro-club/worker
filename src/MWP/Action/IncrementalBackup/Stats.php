@@ -68,7 +68,7 @@ class MWP_Action_IncrementalBackup_Stats extends MWP_Action_IncrementalBackup_Ab
 
     public function activePluginFilter($plugin)
     {
-        return $plugin['status'] === 'active';
+        return !empty($plugin['status']) && $plugin['status'] === 'active';
     }
 
     /**

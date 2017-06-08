@@ -92,6 +92,10 @@ class MWP_EventListener_PublicRequest_SetHitCounter implements Symfony_EventDisp
             return;
         }
 
+        if ($this->isDisabled()) {
+            return;
+        }
+
         $this->hitCounter->increment();
     }
 
@@ -130,5 +134,15 @@ class MWP_EventListener_PublicRequest_SetHitCounter implements Symfony_EventDisp
     protected function shouldTrack(MWP_Worker_Request $request)
     {
         return $request->getHeader('DNT') !== "1";
+    }
+
+    /**
+     * Check if user disabled hit count.
+     *
+     * @return bool
+     */
+    private function isDisabled()
+    {
+        return $this->context->optionGet('disabled_hit_count');
     }
 }

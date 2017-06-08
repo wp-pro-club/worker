@@ -155,6 +155,10 @@ class MWP_Action_GetState extends MWP_Action_Abstract
         if ($options['fetchAvailableUpdate']) {
             $um = $this->container->getUpdateManager();
             foreach ($plugins as &$plugin) {
+                if (!isset($plugin['basename'])) {
+                    continue;
+                }
+
                 $update = $um->getPluginUpdate($plugin['basename']);
                 if ($update !== null) {
                     $plugin['updateVersion'] = $update->version;
@@ -196,6 +200,10 @@ class MWP_Action_GetState extends MWP_Action_Abstract
         if ($options['fetchAvailableUpdate']) {
             $um = $this->container->getUpdateManager();
             foreach ($themes as &$theme) {
+                if (!isset($theme['slug'])) {
+                    continue;
+                }
+
                 $update = $um->getThemeUpdate($theme['slug']);
                 if ($update !== null) {
                     $theme['updateVersion'] = $update->version;

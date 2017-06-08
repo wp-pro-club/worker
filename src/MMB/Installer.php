@@ -105,7 +105,7 @@ class MMB_Installer extends MMB_Core
             );
         }
 
-        if (!empty($activate) && defined('WP_ADMIN') && WP_ADMIN) {
+        if (defined('WP_ADMIN') && WP_ADMIN) {
             global $wp_current_filter;
             $wp_current_filter[] = 'load-update-core.php';
 
@@ -562,7 +562,7 @@ class MMB_Installer extends MMB_Core
             $upgrader = new Theme_Upgrader(mwp_container()->getUpdaterSkin());
             $result   = $upgrader->bulk_upgrade($themes);
 
-            $return  = array();
+            $return = array();
             if (!empty($result)) {
                 foreach ($result as $theme_tmp => $theme_info) {
                     if (is_wp_error($theme_info) || empty($theme_info)) {
@@ -595,7 +595,7 @@ class MMB_Installer extends MMB_Core
         if (class_exists('Language_Pack_Upgrader')) {
             /** @handled class */
             $upgrader = new Language_Pack_Upgrader(mwp_container()->getUpdaterSkin());
-            $result = $upgrader->bulk_upgrade();
+            $result   = $upgrader->bulk_upgrade();
 
             if (!empty($result)) {
                 $return = 1;

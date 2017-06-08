@@ -237,7 +237,8 @@ if (!function_exists('untrailingslashit') || !defined('WP_PLUGIN_DIR')) {
     exit;
 }
 
-if (file_exists(untrailingslashit(WP_PLUGIN_DIR).'/$pluginBasename')) {
+if ((file_exists(untrailingslashit(WP_PLUGIN_DIR).'/$pluginBasename')) ||
+        (function_exists('get_site_option') && array_key_exists('worker/init.php', (array) get_site_option('active_sitewide_plugins')))) {
     if (in_array('$pluginBasename', (array) get_option('active_plugins'))) {
         \$GLOBALS['mwp_is_mu'] = true;
         include_once untrailingslashit(WP_PLUGIN_DIR).'/$pluginBasename';
