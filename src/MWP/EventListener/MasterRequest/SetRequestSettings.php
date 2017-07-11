@@ -98,6 +98,9 @@ class MWP_EventListener_MasterRequest_SetRequestSettings implements Symfony_Even
         /** @handled function */
         wp_update_plugins();
 
+        /** @handled function */
+        wp_update_themes();
+
         array_pop($wp_current_filter);
 
         /** @handled function */

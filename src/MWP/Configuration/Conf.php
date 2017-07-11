@@ -274,7 +274,7 @@ class MWP_Configuration_Conf
     }
 
     public function getNotice() {
-        return $this->getNoticeHtml('Add the site to your ManageWP dashboard to enable backups, uptime monitoring, website cleanup and a lot more!');
+        return $this->getNoticeHtml('Add this website to <a href="https://managewp.com" target="_blank">ManageWP</a> or <a href="https://godaddy.com/pro" target="_blank">GoDaddy Pro</a> dashboard to enable backups, uptime monitoring, website cleanup and a lot more!');
     }
 
     private function getNoticeHtml($message)

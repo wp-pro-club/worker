@@ -38,7 +38,7 @@ class MWP_Action_GetComponentsStats extends MWP_Action_Abstract
 
     private function getNetworkStats(array $params = array())
     {
-        $network_blogs = $this->wpdb->get_results("select `blog_id`, `site_id`, `domain` from `{$this->wpdb->blogs}`");
+        $network_blogs = $this->wpdb->get_results("select `blog_id`, `site_id`, `domain`, `path` from `{$this->wpdb->blogs}`");
         if (empty($network_blogs)) {
             return array(
                 'multisite' => true,
@@ -57,7 +57,10 @@ class MWP_Action_GetComponentsStats extends MWP_Action_Abstract
 
             $stateAction = new MWP_Action_GetState();
             $stateAction->setContainer($this->container);
-            $data[$network_blog->domain] = $stateAction->execute($options);
+
+            $network_blog_url = rtrim($network_blog->domain, '/').'/'.trim($network_blog->path, '/');
+
+            $data[$network_blog_url] = $stateAction->execute($options);
         }
 
         /** @handled function */

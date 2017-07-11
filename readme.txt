@@ -53,6 +53,10 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.20 =
+
+- Improvement: Fixed multisite not showing theme updates correctly in some cases.
+
 = 4.2.19 =
 
 - New: Ability to turn off ManageWP analytics.

@@ -163,23 +163,25 @@ class MMB_Installer extends MMB_Core
 
                 $wp_themes = null;
                 unset($wp_themes); //prevent theme data caching
-                if (function_exists('wp_get_themes')) {
-                    $all_themes = wp_get_themes();
-                    foreach ($all_themes as $theme_name => $theme_data) {
-                        foreach ($install_info as $key => $install) {
-                            if (!$install || is_wp_error($install)) {
-                                continue;
-                            }
-
-                            if ($theme_data->Template == $install['destination_name']) {
-                                $wrongFileType = false;
-                                if ($activate) {
-                                    $install_info[$key]['activated'] = switch_theme($theme_data->Template, $theme_data->Stylesheet);
-                                }
-                                $install_info[$key]['full_name'] = $theme_data->name;
-                                $install_info[$key]['version']   = $theme_data->version;
-                            }
+                if (function_exists('wp_get_theme')) {
+                    foreach ($install_info as $key => $install) {
+                        if (!$install || is_wp_error($install)) {
+                            continue;
                         }
+
+                        $theme = wp_get_theme($install['destination_name']);
+                        if ($theme->errors() !== false) {
+                            $install_info[$key] = $theme->errors();
+                            continue;
+                        }
+
+                        $wrongFileType = false;
+                        if ($activate) {
+                            $install_info[$key]['activated'] = switch_theme($theme->Template, $theme->Stylesheet);
+                        }
+
+                        $install_info[$key]['full_name'] = $theme->name;
+                        $install_info[$key]['version']   = $theme->version;
                     }
                 } else {
                     $all_themes = get_themes();
@@ -189,7 +191,7 @@ class MMB_Installer extends MMB_Core
                                 continue;
                             }
 
-                            if ($theme_data['Template'] == $install['destination_name']) {
+                            if ($theme_data['Template'] == $install['destination_name'] || $theme_data['Stylesheet'] == $install['destination_name']) {
                                 $wrongFileType = false;
                                 if ($activate) {
                                     $install_info[$key]['activated'] = switch_theme($theme_data['Template'], $theme_data['Stylesheet']);
