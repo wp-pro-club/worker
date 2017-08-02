@@ -33,7 +33,11 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
         if (isset($params['query']) && is_array($params['query'])) {
             $files = $this->getFilesInfo($params['query']);
         } else {
-            $files = $this->listFiles(ABSPATH, true);
+            try {
+                $files = $this->listFiles(ABSPATH, true);
+            } catch (UnexpectedValueException $e) {
+                $files = $this->listFilesWindowsPermissionsFix(ABSPATH, true);
+            }
         }
 
         return $this->createResult(array('files' => $files));
@@ -64,7 +68,16 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
                 continue;
             }
 
-            $filesInDirectory      = $this->listFiles($realPath, $recursive, $offset, $limit);
+            try {
+                $filesInDirectory = $this->listFiles($realPath, $recursive, $offset, $limit);
+            } catch (UnexpectedValueException $e) {
+                if ($relativePath !== ".") {
+                    throw $e;
+                }
+
+                $filesInDirectory = $this->listFilesWindowsPermissionsFix($realPath, $recursive, $offset, $limit);
+            }
+
             $result[$relativePath] = $filesInDirectory;
         }
 
@@ -108,6 +121,47 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
     }
 
     /**
+     * This is a special case of listFiles function, with the purpose of bypassing the
+     * Windows permissions issue when the php user does not have permission to list
+     * the parent directory of "."
+     *
+     * See https://bugs.php.net/bug.php?id=43817 for the details of the issue.
+     *
+     * @param string $rootPath
+     * @param bool   $recursive
+     * @param int    $offset
+     * @param int    $limit
+     *
+     * @return array
+     */
+    private function listFilesWindowsPermissionsFix($rootPath, $recursive = false, $offset = 0, $limit = 0)
+    {
+        $result = array();
+
+        $iterator = $this->createIterator($recursive, $rootPath . DIRECTORY_SEPARATOR . 'wp-admin' . DIRECTORY_SEPARATOR . '..');
+
+        $i = 0;
+
+        foreach ($iterator as $file) {
+            if ($i++ < $offset) {
+                continue;
+            }
+
+            if ($limit !== 0 && $i > $offset + $limit) {
+                break;
+            }
+
+            /** @var SplFileInfo $file */
+            $fileResult = $this->createFileResult($file);
+            $fileResult['path'] = str_replace("wp-admin/../", "", $fileResult['path']);
+
+            $result[] = $fileResult;
+        }
+
+        return $result;
+    }
+
+    /**
      * Get a list of file stats for given $files
      *
      * @param array $files
@@ -121,7 +175,7 @@ class MWP_Action_IncrementalBackup_ListFiles extends MWP_Action_IncrementalBacku
         foreach ($files as $file) {
             $relativePath = $file['path'];
             $decodedPath  = $file['pathEncoded'] ? $this->pathDecode($relativePath) : $relativePath;
-            $realPath = $this->getRealPath($decodedPath, true);
+            $realPath     = $this->getRealPath($decodedPath, true);
 
             if (!file_exists($realPath)) {
                 $result[] = array(

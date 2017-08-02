@@ -308,8 +308,9 @@ EOF;
             if (!empty($network_blogs)) {
                 if (is_network_admin()) {
                     update_option('mmb_network_admin_install', 1);
+                    $mainBlogId = defined( 'BLOG_ID_CURRENT_SITE' ) ? BLOG_ID_CURRENT_SITE : false;
                     foreach ($network_blogs as $details) {
-                        if ($details->site_id == $details->blog_id) {
+                        if (($mainBlogId !== false && $details->blog_id == $mainBlogId) || ($mainBlogId === false && $details->site_id == $details->blog_id)) {
                             update_blog_option($details->blog_id, 'mmb_network_admin_install', 1);
                         } else {
                             update_blog_option($details->blog_id, 'mmb_network_admin_install', -1);

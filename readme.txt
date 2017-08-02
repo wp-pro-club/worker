@@ -53,6 +53,12 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.21 =
+
+- Fix: We can now always detect the parent site correctly on multisite networks.
+- Fix: Fixed an issue where a website could not be backed up in specific permission setups on Windows.
+- Fix: The parent site in the multisite network is now always going to list all super admins correctly.
+
 = 4.2.20 =
 
 - Improvement: Fixed multisite not showing theme updates correctly in some cases.

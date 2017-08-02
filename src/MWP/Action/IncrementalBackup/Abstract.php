@@ -57,7 +57,13 @@ class MWP_Action_IncrementalBackup_Abstract extends MWP_Action_Abstract
     private function virtualGetAbsolutePath($path)
     {
         $originalPath = $path;
-        $path         = str_replace(array('/', '\\'), '/', $path);
+
+        $isWindows = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN');
+
+        if ($isWindows) {
+            $path = str_replace('\\', '/', $path);
+        }
+
         $parts        = array_filter(explode('/', $path), 'strlen');
         $absolutes    = array();
         foreach ($parts as $part) {

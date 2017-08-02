@@ -601,10 +601,13 @@ class MMB_Installer extends MMB_Core
 
             if (!empty($result)) {
                 $return = 1;
-                foreach ($result as $translate_tmp => $translate_info) {
-                    if (is_wp_error($translate_info) || empty($translate_info)) {
-                        $return = $this->mmb_get_error($translate_info);
-                        break;
+
+                if (is_array($result)) {
+                    foreach ($result as $translate_tmp => $translate_info) {
+                        if (is_wp_error($translate_info) || empty($translate_info)) {
+                            $return = $this->mmb_get_error($translate_info);
+                            break;
+                        }
                     }
                 }
 
