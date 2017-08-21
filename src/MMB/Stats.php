@@ -540,7 +540,11 @@ class MMB_Stats extends MMB_Core
         }
 
         $uploadDirArray                 = wp_upload_dir();
-        $stats['uploads_relative_path'] = $fs->makePathRelative($uploadDirArray['basedir'], ABSPATH);
+        if (false === $uploadDir = realpath($uploadDirArray['basedir'])) {
+            $uploadDir = $uploadDirArray['basedir'];
+        }
+
+        $stats['uploads_relative_path'] = $fs->makePathRelative($uploadDir, ABSPATH);
 
         $stats['writable']  = $this->is_server_writable();
         $stats['fs_method'] = !$this->check_if_pantheon() ? get_filesystem_method() : '';

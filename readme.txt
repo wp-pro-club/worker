@@ -53,6 +53,10 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.22 =
+
+- Fix: Detecting real upload path when using symbolic links.
+
 = 4.2.21 =
 
 - Fix: We can now always detect the parent site correctly on multisite networks.
