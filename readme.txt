@@ -53,6 +53,10 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.23 =
+
+- Improvement: We can now display whether a site is connected to a GoDaddy Pro or ManageWP account.
+
 = 4.2.22 =
 
 - Fix: Detecting real upload path when using symbolic links.
