@@ -53,6 +53,10 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.24 =
+
+- Improvement: ManageWP Worker plugin can now automatically connect to another account even if the plugin is hidden by our white label feature.
+
 = 4.2.23 =
 
 - Improvement: We can now display whether a site is connected to a GoDaddy Pro or ManageWP account.
