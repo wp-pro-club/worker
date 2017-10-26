@@ -53,6 +53,11 @@ https://vimeo.com/120034595
 
 == Changelog ==
 
+= 4.2.25 =
+
+- Improvement: When managing 500+ users. they are no longer sorted by roles.
+- Improvement: The Worker plugin will no longer automatically deactivate in specific cases.
+
 = 4.2.24 =
 
 - Improvement: ManageWP Worker plugin can now automatically connect to another account even if the plugin is hidden by our white label feature.
