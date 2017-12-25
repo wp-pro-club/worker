@@ -22,7 +22,7 @@ class MWP_WordPress_Query_User extends MWP_WordPress_Query_Abstract
 
         // Depending on the total number of users we choose whether we will run the query or the simplified query without sorts.
         $query = $options['query'];
-        $users_count = $this->getDb()->get_var('SELECT COUNT(*) FROM wp_users');
+        $users_count = $this->getDb()->get_var('SELECT COUNT(*) FROM '.$this->getDb()->base_prefix.'users');
         if ($users_count > 500) {
             $query = $options['simplifiedQuery'];
         }
