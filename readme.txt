@@ -57,6 +57,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.3.1 =
+
+- Fix: The Worker plugin could not fetch keys for the new communication system in some cases.
+
 = 4.3.0 =
 
 - New: Ability to install/update Envato plugins and themes.

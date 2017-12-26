@@ -1510,7 +1510,6 @@ function mwp_get_public_keys_from_live()
             'verify_peer'       => true,
             'verify_peer_name'  => true,
             'allow_self_signed' => false,
-            'ciphers'           => 'HIGH:TLSv1.2:TLSv1.1:TLSv1.0:!SSLv3:!SSLv2',
             'cafile'            => dirname(__FILE__).'/publickeys/godaddy_g2_root.cer',
         ),
     )));
@@ -1547,7 +1546,6 @@ function mwp_get_public_keys_from_live_fallback()
             'verify_peer'       => true,
             'verify_peer_name'  => true,
             'allow_self_signed' => false,
-            'ciphers'           => 'HIGH:TLSv1.2:TLSv1.1:TLSv1.0:!SSLv3:!SSLv2',
             'cafile'            => dirname(__FILE__).'/publickeys/godaddy_g2_root.cer',
         ),
     )));
