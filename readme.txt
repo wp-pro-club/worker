@@ -57,6 +57,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.3.2 =
+
+- Fix: The Worker plugin throw exception while recovering from failed update
+
 = 4.3.1 =
 
 - Fix: The Worker plugin could not fetch keys for the new communication system in some cases.

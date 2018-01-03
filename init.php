@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: We help you efficiently manage all your WordPress websites. <strong>Updates, backups, 1-click login, migrations, security</strong> and more, on one dashboard. This service comes in two versions: standalone <a href="https://managewp.com">ManageWP</a> service that focuses on website management, and <a href="https://godaddy.com/pro">GoDaddy Pro</a> that includes additional tools for hosting, client management, lead generation, and more.
-Version: 4.3.1
+Version: 4.3.2
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -576,10 +576,9 @@ if (!function_exists('mwp_init')):
         // making the plugin always force the recovery mode , which may always fail for any
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
-        mwp_provision_keys();
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.3.1';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2017-12-26 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.3.2';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2018-01-03 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {
@@ -746,7 +745,7 @@ if (!function_exists('mwp_init')):
         if (wp_next_scheduled('mwp_backup_tasks')) {
             wp_clear_scheduled_hook('mwp_backup_tasks');
         }
-
+        mwp_provision_keys();
         mwp_set_plugin_priority();
 
         $request   = MWP_Worker_Request::createFromGlobals();
