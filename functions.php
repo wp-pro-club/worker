@@ -1266,7 +1266,7 @@ function mmb_maintenance_mode($params)
 function mmb_plugin_actions()
 {
     global $pagenow, $current_user, $mmode;
-    if (!is_admin() && !in_array($pagenow, array('wp-login.php'))) {
+    if (!is_admin() && !(defined('WP_CLI') && WP_CLI) && !in_array($pagenow, array('wp-login.php'))) {
         $mmode = get_option('mwp_maintenace_mode');
         if (!empty($mmode)) {
             if (isset($mmode['active']) && $mmode['active'] == true) {
@@ -1425,10 +1425,10 @@ function mwp_uninstall()
 
 function mwp_get_service_key()
 {
-    $serviceKey = get_option('mwp_service_key');
+    $serviceKey = mwp_context()->optionGet('mwp_service_key');
     if (empty($serviceKey)) {
         $serviceKey = mwp_generate_uuid4();
-        update_option('mwp_service_key', $serviceKey, true);
+        mwp_context()->optionSet('mwp_service_key', $serviceKey, true);
     }
 
     return $serviceKey;
@@ -1436,31 +1436,31 @@ function mwp_get_service_key()
 
 function mwp_get_communication_key()
 {
-    return get_option('mwp_communication_key');
+    return mwp_context()->optionGet('mwp_communication_key');
 }
 
-function mwp_accept_potential_key()
+function mwp_accept_potential_key($keyToAccept = '')
 {
-    $potentialKey = mwp_get_potential_key();
+    $potentialKey = !empty($keyToAccept) ? $keyToAccept : mwp_get_potential_key();
 
-    update_option('mwp_communication_key', $potentialKey, true);
-    delete_option('mwp_potential_key');
-    delete_option('mwp_potential_key_time');
+    mwp_context()->optionSet('mwp_communication_key', $potentialKey, true);
+    mwp_context()->optionDelete('mwp_potential_key', true);
+    mwp_context()->optionDelete('mwp_potential_key_time', true);
 
     return $potentialKey;
 }
 
 function mwp_get_potential_key()
 {
-    $potentialKey     = get_option('mwp_potential_key');
-    $potentialKeyTime = get_option('mwp_potential_key_time');
+    $potentialKey     = mwp_context()->optionGet('mwp_potential_key');
+    $potentialKeyTime = mwp_context()->optionGet('mwp_potential_key_time');
     $now              = time();
 
     if (empty($potentialKey) || empty($potentialKeyTime) || ($now - $potentialKeyTime) > 86400) {
         $potentialKey     = mwp_generate_uuid4();
         $potentialKeyTime = $now;
-        update_option('mwp_potential_key', $potentialKey, true);
-        update_option('mwp_potential_key_time', $potentialKeyTime, true);
+        mwp_context()->optionSet('mwp_potential_key', $potentialKey, true);
+        mwp_context()->optionSet('mwp_potential_key_time', $potentialKeyTime, true);
     }
 
     return $potentialKey;
@@ -1476,7 +1476,7 @@ function mwp_generate_uuid4()
 {
     $data = null;
     if (function_exists('openssl_random_pseudo_bytes')) {
-        $data = openssl_random_pseudo_bytes(16);
+        $data = @openssl_random_pseudo_bytes(16);
     }
 
     if (empty($data)) {
@@ -1500,12 +1500,12 @@ function mwp_refresh_live_public_keys($params = array())
         return;
     }
 
-    update_option('mwp_public_keys', $liveKeys, true);
+    mwp_context()->optionSet('mwp_public_keys', $liveKeys, true);
 }
 
 function mwp_get_public_keys_from_live()
 {
-    $result = file_get_contents('https://cdn.managewp.com/public-keys', false, stream_context_create(array(
+    $result = @file_get_contents('https://cdn.managewp.com/public-keys', false, @stream_context_create(array(
         'ssl' => array(
             'verify_peer'       => true,
             'verify_peer_name'  => true,
@@ -1541,7 +1541,7 @@ function mwp_get_public_keys_from_live_fallback()
         $transportToUse = $transport;
     }
 
-    $socket = stream_socket_client("$transportToUse://cdn.managewp.com:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, stream_context_create(array(
+    $socket = @stream_socket_client("$transportToUse://cdn.managewp.com:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, @stream_context_create(array(
         'ssl' => array(
             'verify_peer'       => true,
             'verify_peer_name'  => true,
@@ -1569,21 +1569,21 @@ Connection: close
 EOL;
 
 
-    if (fwrite($socket, $requestContent) === false) {
+    if (@fwrite($socket, $requestContent) === false) {
         return null;
     }
 
     do {
-        $line = fgets($socket);
+        $line = @fgets($socket);
     } while ($line !== false && $line !== "\n" && $line !== "\r\n");
 
     if ($line === false) {
         return null;
     }
 
-    $content = stream_get_contents($socket);
+    $content = @stream_get_contents($socket);
 
-    fclose($socket);
+    @fclose($socket);
 
     if ($content === false || !is_string($content)) {
         return null;
