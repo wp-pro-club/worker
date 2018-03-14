@@ -56,6 +56,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.5.0 =
+
+- Improvement: Removed deprecated ManageWP Classic code.
+
 = 4.4.0 =
 
 - Fix: Communication failing with a website behind CloudFlare, that has warnings turned on, and currently has warnings.
