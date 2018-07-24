@@ -73,6 +73,10 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
                         }
                     });
                 });
+                $('button.copy-key-button').click(function() {
+                    $('#connection-key').select();
+                    document.execCommand('copy');
+                });
             });
         </script>
         <?php
@@ -115,7 +119,8 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
             <?php } ?>
 
             <div style="text-align: center;font-weight: bold;"><p style="margin-bottom: 4px;margin-top: 20px;">Connection Key</p></div>
-            <div style="padding: 10px;background-color: #fafafa;border: 1px solid black;border-radius: 10px;font-weight: bold;font-size: 14px;text-align: center;"><?php echo mwp_get_potential_key(); ?></div>
+            <input id="connection-key" rows="1" style="padding: 10px;background-color: #fafafa;border: 1px solid black;border-radius: 10px;font-weight: bold;font-size: 14px;text-align: center; width: 85%; margin-right: 5px" onclick="this.focus();this.select()" readonly="readonly" value="<?php echo mwp_get_potential_key(); ?>">
+            <button class="copy-key-button" data-clipboard-target="#connection-key" style="padding: 10px;background-color: #fafafa;border: 1px solid black;border-radius: 10px;font-weight: bold;font-size: 14px;text-align: center;">Copy</button>
         </div>
         <?php
 

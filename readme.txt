@@ -56,6 +56,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.6.0 =
+
+- New: Localhost Sync has reached the closed beta stage. Stay tuned for more info!
+
 = 4.5.0 =
 
 - Improvement: Removed deprecated ManageWP Classic code.
