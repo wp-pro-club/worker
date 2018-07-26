@@ -56,6 +56,11 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.6.1 =
+
+- Fix: Worker auto-recovery on PHP 7.
+- Fix: Replaced eval function that triggered false positives with some security plugins.
+
 = 4.6.0 =
 
 - New: Localhost Sync has reached the closed beta stage. Stay tuned for more info!

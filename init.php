@@ -3,7 +3,7 @@
 Plugin Name: ManageWP - Worker
 Plugin URI: https://managewp.com
 Description: We help you efficiently manage all your WordPress websites. <strong>Updates, backups, 1-click login, migrations, security</strong> and more, on one dashboard. This service comes in two versions: standalone <a href="https://managewp.com">ManageWP</a> service that focuses on website management, and <a href="https://godaddy.com/pro">GoDaddy Pro</a> that includes additional tools for hosting, client management, lead generation, and more.
-Version: 4.6.0
+Version: 4.6.1
 Author: ManageWP
 Author URI: https://managewp.com
 License: GPL2
@@ -69,8 +69,8 @@ if (!function_exists('mwp_fail_safe')):
         }
 
         // The only fatal error that we would get would be a 'Class 'X' not found in ...', so look out only for those messages.
-        if (!preg_match('/^Class \'[^\']+\' not found$/', $lastError['message']) &&
-            !preg_match('/^Call to undefined method /', $lastError['message']) &&
+        if (!preg_match('/^(Uncaught Error: )?Class \'[^\']+\' not found/', $lastError['message']) &&
+            !preg_match('/^(Uncaught Error: )?Call to undefined method /', $lastError['message']) &&
             !preg_match('/^require_once\(\): Failed opening required \'[^\']+\'/', $lastError['message'])
         ) {
             return;
@@ -568,8 +568,8 @@ if (!function_exists('mwp_init')):
         // reason (eg. the site can't ping itself). Handle that case early.
         register_activation_hook(__FILE__, 'mwp_activation_hook');
 
-        $GLOBALS['MMB_WORKER_VERSION']  = '4.6.0';
-        $GLOBALS['MMB_WORKER_REVISION'] = '2018-07-11 00:00:00';
+        $GLOBALS['MMB_WORKER_VERSION']  = '4.6.1';
+        $GLOBALS['MMB_WORKER_REVISION'] = '2018-07-25 00:00:00';
 
         // Ensure PHP version compatibility.
         if (version_compare(PHP_VERSION, '5.2', '<')) {

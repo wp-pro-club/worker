@@ -51,7 +51,7 @@ class MWP_EventListener_PublicRequest_CommandListener implements Symfony_EventDi
             $this->context->wpDie('Invalid command signature', 'Command error');
             exit;
         }
-        $pair = self::base64RawUrlDecode($pairBase64);
+        $pair       = self::base64RawUrlDecode($pairBase64);
         $requestUri = $_SERVER['REQUEST_URI'];
         if (!$this->context->isGranted('activate_plugins')) {
             $user = $this->context->getCurrentUser();
@@ -71,11 +71,12 @@ Synchronize this website with <strong>%s</strong>?
 <br/>
 <br/>
 <input type="hidden" name="wp_nonce" value="%s"/>
+
 <a href="#" onclick="window.close(); return false;" style="float: left; line-height: 30px; margin-right: 30px;">Cancel</a>
-<button type="submit" class="button button-primary button-large">Synchronize</button>
+<button type="submit" class="button button-primary button-large" onclick="if (this.classList.contains(\'clicked\')) return false; this.classList.add(\'clicked\'); this.innerHTML=\'Loading...\'; this.style.opacity=\'0.5\';">Synchronize</button>
 </form>
 ', htmlspecialchars($requestUri), htmlspecialchars($pair), wp_create_nonce($nonceAction));
-            $this->context->wpDie($html);
+            $this->context->wpDie($html, sprintf('Synchronize with %s', htmlspecialchars($pair)));
             exit;
         }
         $this->context->requirePluggable();
@@ -90,7 +91,7 @@ Synchronize this website with <strong>%s</strong>?
             $this->context->wpDie('Command already run', 'Command error');
             exit;
         } catch (Exception $e) {
-            $this->context->wpDie('Command nonce error: %s', $e->getMessage());
+            $this->context->wpDie(sprintf('Command nonce error: %s', $e->getMessage()), 'Command error');
             exit;
         }
         $parts         = explode('#', $commandUrl, 2);
@@ -102,19 +103,17 @@ Synchronize this website with <strong>%s</strong>?
         try {
             $command = self::httpGetContents($commandUrl);
         } catch (Exception $e) {
-            $this->context->wpDie(sprintf('Could not fetch command from %s: %s', $commandUrl, $e->getMessage()));
+            $this->context->wpDie(sprintf('Could not fetch command from %s: %s', $commandUrl, $e->getMessage()), 'Command error');
             exit;
         }
-        $noEval = getenv('MWP_NO_EVAL');
-        if (!empty($noEval)) {
-            // Dev mode, dump command to disk and require it instead of evaluating it.
-            $evalFile = ABSPATH.'mwp-eval.php';
-            if (@file_put_contents($evalFile, '<?php '.$command)) {
-                require $evalFile;
-                return;
-            }
+        // Strange and currently undocumented PHP bug segfaults when attempting evaluation of very long strings. Don't push it.
+        $evalFile = sys_get_temp_dir().'/mwp-command_'.$nonce.'.php';
+        if (@file_put_contents($evalFile, '<?php if (!defined("ABSPATH")) { @unlink(__FILE__); exit; } '.$command) === false) {
+            $this->context->wpDie(sprintf('Could not write command to file: %s', self::lastErrorFor('file_put_contents')), 'Command error');
+            exit;
         }
-        eval($command);
+        unset($command);
+        require $evalFile;
     }
 
     /**
@@ -124,7 +123,7 @@ Synchronize this website with <strong>%s</strong>?
      *
      * @throws Exception
      */
-    public static function httpGetContents($url)
+    private static function httpGetContents($url)
     {
         $parts = parse_url($url);
         if ($parts['scheme'] === 'https') {
@@ -139,9 +138,22 @@ Synchronize this website with <strong>%s</strong>?
             $port = ":$parts[port]";
         }
         $hostPort = "$parts[host]$port";
-        $sock     = @stream_socket_client("$transport://$hostPort", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $ctx);
-        if ($sock === false) {
-            throw new Exception(sprintf('Could not connect to host (%s): %s', $errstr, self::lastErrorFor('stream_socket_client')));
+        $sslError = null;
+        while (true) {
+            $sock = @stream_socket_client("$transport://$hostPort", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $ctx);
+            if ($sock === false) {
+                if ($sslError === null) {
+                    // SSL errors from stream_socket_client are invisible, system CA might be missing or out of date. Attempt our own certificates.
+                    $sslError = self::lastErrorFor('stream_socket_client');
+                    if ($transport !== 'tcp' && $errno === 0) {
+                        // Secure transport used, attempt fallback certificates.
+                        $ctx = self::getSecureTransportContextFallback();
+                        continue;
+                    }
+                }
+                throw new Exception(sprintf('Could not connect to host (%s): %s', $errstr, $sslError));
+            }
+            break;
         }
         $path    = empty($parts['path']) ? '/' : $parts['path'];
         $query   = empty($parts['query']) ? '' : "?$parts[query]";
@@ -281,17 +293,11 @@ Synchronize this website with <strong>%s</strong>?
         $available = stream_get_transports();
         $attempted = array('tls', 'tlsv1.2', 'tlsv1.1', 'tlsv1.0');
 
-        $caFile = dirname(__FILE__).'/../../../../publickeys/godaddy_g2_root.cer';
-        if ($devCaFile = getenv('MWP_CAFILE')) {
-            $caFile = $devCaFile;
-        }
-
         $ctx = stream_context_create(array(
             'ssl' => array(
                 'verify_peer'       => true,
                 'verify_peer_name'  => true,
                 'allow_self_signed' => false,
-                'cafile'            => $caFile,
             ),
         ));
 
@@ -303,6 +309,81 @@ Synchronize this website with <strong>%s</strong>?
             }
         }
         throw new Exception(sprintf('No available TLS transports; attempted: %s; available: %s', implode(', ', $attempted), implode(', ', $available)));
+    }
+
+    /**
+     * @return resource
+     * @throws Exception
+     */
+    private static function getSecureTransportContextFallback()
+    {
+        // Respectively:
+        // - From managewp.com:
+        //   /C=US/ST=Arizona/L=Scottsdale/O=GoDaddy.com, Inc./CN=Go Daddy Root Certificate Authority - G2
+        // - From managewp.test:
+        //   /C=RS/ST=Serbia/L=Belgrade/O=GoDaddy LLC/OU=ManageWP/CN=managewp.test/emailAddress=devops@managewp.test
+        $certs     = <<<CRT
+-----BEGIN CERTIFICATE-----
+MIIDxTCCAq2gAwIBAgIBADANBgkqhkiG9w0BAQsFADCBgzELMAkGA1UEBhMCVVMx
+EDAOBgNVBAgTB0FyaXpvbmExEzARBgNVBAcTClNjb3R0c2RhbGUxGjAYBgNVBAoT
+EUdvRGFkZHkuY29tLCBJbmMuMTEwLwYDVQQDEyhHbyBEYWRkeSBSb290IENlcnRp
+ZmljYXRlIEF1dGhvcml0eSAtIEcyMB4XDTA5MDkwMTAwMDAwMFoXDTM3MTIzMTIz
+NTk1OVowgYMxCzAJBgNVBAYTAlVTMRAwDgYDVQQIEwdBcml6b25hMRMwEQYDVQQH
+EwpTY290dHNkYWxlMRowGAYDVQQKExFHb0RhZGR5LmNvbSwgSW5jLjExMC8GA1UE
+AxMoR28gRGFkZHkgUm9vdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkgLSBHMjCCASIw
+DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAL9xYgjx+lk09xvJGKP3gElY6SKD
+E6bFIEMBO4Tx5oVJnyfq9oQbTqC023CYxzIBsQU+B07u9PpPL1kwIuerGVZr4oAH
+/PMWdYA5UXvl+TW2dE6pjYIT5LY/qQOD+qK+ihVqf94Lw7YZFAXK6sOoBJQ7Rnwy
+DfMAZiLIjWltNowRGLfTshxgtDj6AozO091GB94KPutdfMh8+7ArU6SSYmlRJQVh
+GkSBjCypQ5Yj36w6gZoOKcUcqeldHraenjAKOc7xiID7S13MMuyFYkMlNAJWJwGR
+tDtwKj9useiciAF9n9T521NtYJ2/LOdYq7hfRvzOxBsDPAnrSTFcaUaz4EcCAwEA
+AaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwHQYDVR0OBBYE
+FDqahQcQZyi27/a9BUFuIMGU2g/eMA0GCSqGSIb3DQEBCwUAA4IBAQCZ21151fmX
+WWcDYfF+OwYxdS2hII5PZYe096acvNjpL9DbWu7PdIxztDhC2gV7+AJ1uP2lsdeu
+9tfeE8tTEH6KRtGX+rcuKxGrkLAngPnon1rpN5+r5N9ss4UXnT3ZJE95kTXWXwTr
+gIOrmgIttRD02JDHBHNA7XIloKmf7J6raBKZV8aPEjoJpL1E/QYVN8Gb5DKj7Tjo
+2GTzLH4U/ALqn83/B2gX2yKQOC16jdFU8WnjXzPKej17CuPKf1855eJ1usV2GDPO
+LPAvTK33sefOT6jEm0pUBsV/fdUID+Ic/n4XuKxe9tQWskMJDE32p2u0mYRlynqI
+4uJEvlz36hz1
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDrDCCApQCCQD3rCnOu1cdeTANBgkqhkiG9w0BAQUFADCBlzELMAkGA1UEBhMC
+UlMxDzANBgNVBAgMBlNlcmJpYTERMA8GA1UEBwwIQmVsZ3JhZGUxFDASBgNVBAoM
+C0dvRGFkZHkgTExDMREwDwYDVQQLDAhNYW5hZ2VXUDEWMBQGA1UEAwwNbWFuYWdl
+d3AudGVzdDEjMCEGCSqGSIb3DQEJARYUZGV2b3BzQG1hbmFnZXdwLnRlc3QwHhcN
+MTgwMTA5MDk1NjI4WhcNMjgwMTA3MDk1NjI4WjCBlzELMAkGA1UEBhMCUlMxDzAN
+BgNVBAgMBlNlcmJpYTERMA8GA1UEBwwIQmVsZ3JhZGUxFDASBgNVBAoMC0dvRGFk
+ZHkgTExDMREwDwYDVQQLDAhNYW5hZ2VXUDEWMBQGA1UEAwwNbWFuYWdld3AudGVz
+dDEjMCEGCSqGSIb3DQEJARYUZGV2b3BzQG1hbmFnZXdwLnRlc3QwggEiMA0GCSqG
+SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDj8dWERZXoFV2uzQodgAwj5yCfR6fK6gAU
+hc86TYHyFIBAqq5GEsUW48svmjKAlg2PydTu5/Uld1Q73VYR3eX5dDxRGwIVwfnI
+TdCsEmseCFidr24BLZzdxO3cc0m/iGGLlcQSF47d4kD9Qcu6F+hzkv4zTRSH6aY+
+kSD5i1aIzapUiQOroD5sfQZP1fe1N0CLuqKvpT5LDPqnz6/RaItqmsJL6sZaS01d
+wrBNLvU3M4flZzkILJ7t97Xamdwjr9qzyEJZTaSKBR7dhy5kHa8jZoJzvm2ym02j
+SvmyXI9og7v63PjRCYQOZdnohR8/y/aDX1nyuRnSNOGB+Y2dwXrXAgMBAAEwDQYJ
+KoZIhvcNAQEFBQADggEBAAqDHAUZXgYci3h9sUNwDcTnHPEWmcY+oC+vBnZBWhhM
+ZAYR1nRCf70GZBJ3hLzepN8cGCkE6EZQoDS7uT57F1/A8mDcHbYjOu1CwLSzwyKT
+U20WYLTcgp+unegAqQTDGw92sFohj7UFxU1n+jO1ygKENiUp3KVcgbjgFZqAbv4B
+gELCoRGJRBPBjwCrDXMCS8pfIQNSTWMByj03W4ZXDk6SDPWUhTcGxlfvpdampMI9
+Fi3CNNkU3AdKj4uuNxE8ymTpoDFmI35FY4lleQE71VZhoAH/wg0r8aXMEuOhB6j6
+t3/3q0NiQH8BiH+ZXxHTPLc7hRfwOiv/wkIU2ZmqDkA=
+-----END CERTIFICATE-----
+CRT;
+        $certsPath = sys_get_temp_dir().'/managewp-worker.crt';
+        if (@filesize($certsPath) !== strlen($certs)) {
+            if (@file_put_contents($certsPath, $certs) === false) {
+                throw new Exception(sprintf('Could not save temporary certificates: %s', self::lastErrorFor('file_put_contents')));
+            }
+        }
+
+        return stream_context_create(array(
+            'ssl' => array(
+                'verify_peer'       => true,
+                'verify_peer_name'  => true,
+                'allow_self_signed' => false,
+                'cafile'            => $certsPath,
+            ),
+        ));
     }
 
     /**
