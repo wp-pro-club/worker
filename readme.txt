@@ -56,6 +56,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.6.2 =
+
+- Fix: Local Sync tool improvements.
+
 = 4.6.1 =
 
 - Fix: Worker auto-recovery on PHP 7.

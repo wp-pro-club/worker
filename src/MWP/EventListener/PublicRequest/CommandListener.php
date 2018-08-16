@@ -30,9 +30,42 @@ class MWP_EventListener_PublicRequest_CommandListener implements Symfony_EventDi
         );
     }
 
+    private function handleImageCheck($queryValue)
+    {
+        $parts = explode('.', $queryValue);
+        if (count($parts) !== 3) {
+            return;
+        }
+        list($keyName, $expiresAt, $signature64) = $parts;
+        if ((int)$expiresAt < time()) {
+            return;
+        }
+        $publicKey = $this->configuration->getLivePublicKey($keyName);
+        if (empty($publicKey)) {
+            $this->context->wpDie('Public key could not be fetched', 'Image error');
+            exit;
+        }
+        $signature = self::base64RawUrlDecode($signature64);
+        if (!$this->signer->verify("$keyName.$expiresAt", $signature, $publicKey)) {
+            return;
+        }
+        if (headers_sent($file, $line)) {
+            $this->context->wpDie(sprintf('Headers already sent in %s:%d', $file, $line), 'Image error');
+            exit;
+        }
+        header('Content-Type: image/png');
+        // Prints a 11x7 white PNG image.
+        echo base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAsAAAAHCAMAAADpsEdvAAAAA1BMVEX///+nxBvIAAAAC0lEQVR4AWOgAQAAAFQAAbJsAWkAAAAASUVORK5CYII=');
+        exit;
+    }
+
     public function onPublicRequest(MWP_Event_PublicRequest $event)
     {
         $query = $event->getRequest()->query;
+        if (!empty($query['mwpi'])) {
+            $this->handleImageCheck($query['mwpi']);
+            return;
+        }
         if (empty($query['mwpc'])) {
             return;
         }
@@ -67,13 +100,13 @@ class MWP_EventListener_PublicRequest_CommandListener implements Symfony_EventDi
         $nonceAction = 'sync-'.$commandUrl;
         if (@$_SERVER['REQUEST_METHOD'] !== 'POST') {
             $html = sprintf('<form action="%s" method="post">
-Synchronize this website with <strong>%s</strong>?
+Establish connection with <strong>%s</strong>?
 <br/>
 <br/>
 <input type="hidden" name="wp_nonce" value="%s"/>
 
 <a href="#" onclick="window.close(); return false;" style="float: left; line-height: 30px; margin-right: 30px;">Cancel</a>
-<button type="submit" class="button button-primary button-large" onclick="if (this.classList.contains(\'clicked\')) return false; this.classList.add(\'clicked\'); this.innerHTML=\'Loading...\'; this.style.opacity=\'0.5\';">Synchronize</button>
+<button type="submit" class="button button-primary button-large" onclick="if (this.classList.contains(\'clicked\')) return false; this.classList.add(\'clicked\'); this.innerHTML=\'Loading...\'; this.style.opacity=\'0.5\';">Confirm</button>
 </form>
 ', htmlspecialchars($requestUri), htmlspecialchars($pair), wp_create_nonce($nonceAction));
             $this->context->wpDie($html, sprintf('Synchronize with %s', htmlspecialchars($pair)));
