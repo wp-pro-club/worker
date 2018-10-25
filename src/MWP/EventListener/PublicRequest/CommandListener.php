@@ -40,7 +40,7 @@ class MWP_EventListener_PublicRequest_CommandListener implements Symfony_EventDi
         if ((int)$expiresAt < time()) {
             return;
         }
-        $publicKey = $this->configuration->getLivePublicKey($keyName);
+        $publicKey = $this->findActivePublicKey($keyName);
         if (empty($publicKey)) {
             $this->context->wpDie('Public key could not be fetched', 'Image error');
             exit;
@@ -59,6 +59,28 @@ class MWP_EventListener_PublicRequest_CommandListener implements Symfony_EventDi
         exit;
     }
 
+    private function wpDie($commandUrl, $error, $title)
+    {
+        $content = htmlspecialchars($error);
+
+        $query = parse_url($commandUrl, PHP_URL_QUERY);
+        parse_str((string)$query, $params);
+        if (isset($params['state'])) {
+            // Append 'error' query parameter to the URL.
+            $errorUrl = $params['state'];
+            if (strpos($errorUrl, '?') === false) {
+                $errorUrl .= '?';
+            } else {
+                $errorUrl .= '&';
+            }
+            $errorUrl .= 'error='.urlencode($error);
+            $content  .= sprintf('<img src="%s" height="1" width="1"/>', htmlspecialchars($errorUrl));
+        }
+
+        $this->context->wpDie($content, $title);
+        exit;
+    }
+
     public function onPublicRequest(MWP_Event_PublicRequest $event)
     {
         $query = $event->getRequest()->query;
@@ -74,14 +96,17 @@ class MWP_EventListener_PublicRequest_CommandListener implements Symfony_EventDi
             return;
         }
         list($keyName, $payloadBase64, $nonce, $pairBase64, $signatureBase64) = $parts;
-        $signature = self::base64RawUrlDecode($signatureBase64);
-        $publicKey = $this->configuration->getLivePublicKey($keyName);
+        $commandUrl = self::base64RawUrlDecode($payloadBase64);
+        $parts      = explode('#', $commandUrl, 2);
+        $commandUrl = $parts[0];
+        $signature  = self::base64RawUrlDecode($signatureBase64);
+        $publicKey  = $this->findActivePublicKey($keyName);
         if (empty($publicKey)) {
-            $this->context->wpDie('Public key could not be fetched', 'Command error');
+            $this->wpDie($commandUrl, 'Public key could not be fetched', 'Command error');
             exit;
         }
         if (!$this->signer->verify("$keyName.$payloadBase64.$nonce.$pairBase64", $signature, $publicKey)) {
-            $this->context->wpDie('Invalid command signature', 'Command error');
+            $this->wpDie($commandUrl, 'Invalid command signature', 'Command error');
             exit;
         }
         $pair       = self::base64RawUrlDecode($pairBase64);
@@ -89,14 +114,13 @@ class MWP_EventListener_PublicRequest_CommandListener implements Symfony_EventDi
         if (!$this->context->isGranted('activate_plugins')) {
             $user = $this->context->getCurrentUser();
             if (!empty($user->ID)) {
-                $this->context->wpDie('You need the permission to activate plugins to access this page.', 'Command error');
+                $this->wpDie($commandUrl, 'You need the permission to activate plugins to access this page.', 'Command error');
                 exit;
             }
             /** @handled function */
             header('Location: '.site_url('wp-login.php?redirect_to='.urlencode($requestUri)));
             exit;
         }
-        $commandUrl  = self::base64RawUrlDecode($payloadBase64);
         $nonceAction = 'sync-'.$commandUrl;
         if (@$_SERVER['REQUEST_METHOD'] !== 'POST') {
             $html = sprintf('<form action="%s" method="post">
@@ -115,20 +139,18 @@ Establish connection with <strong>%s</strong>?
         $this->context->requirePluggable();
         /** @handled function */
         if (!wp_verify_nonce(@$_POST['wp_nonce'], $nonceAction)) {
-            $this->context->wpDie('Invalid WordPress nonce, please try again', 'Command error');
+            $this->wpDie($commandUrl, 'Invalid WordPress nonce, please retry the process', 'Command error');
             exit;
         }
         try {
             $this->nonceManager->useNonce($nonce);
         } catch (MWP_Security_Exception_NonceAlreadyUsed $e) {
-            $this->context->wpDie('Command already run', 'Command error');
+            $this->context->wpDie($commandUrl, 'Command already run', 'Command error');
             exit;
         } catch (Exception $e) {
-            $this->context->wpDie(sprintf('Command nonce error: %s', $e->getMessage()), 'Command error');
+            $this->wpDie($commandUrl, sprintf('Command nonce error: %s', $e->getMessage()), 'Command error');
             exit;
         }
-        $parts         = explode('#', $commandUrl, 2);
-        $commandUrl    = $parts[0];
         $commandParams = array();
         if (isset($parts[1])) {
             parse_str($parts[1], $commandParams);
@@ -136,17 +158,53 @@ Establish connection with <strong>%s</strong>?
         try {
             $command = self::httpGetContents($commandUrl);
         } catch (Exception $e) {
-            $this->context->wpDie(sprintf('Could not fetch command from %s: %s', $commandUrl, $e->getMessage()), 'Command error');
+            $this->wpDie($commandUrl, sprintf('Could not fetch command from %s: %s', $commandUrl, $e->getMessage()), 'Command error');
             exit;
         }
         // Strange and currently undocumented PHP bug segfaults when attempting evaluation of very long strings. Don't push it.
         $evalFile = sys_get_temp_dir().'/mwp-command_'.$nonce.'.php';
         if (@file_put_contents($evalFile, '<?php if (!defined("ABSPATH")) { @unlink(__FILE__); exit; } '.$command) === false) {
-            $this->context->wpDie(sprintf('Could not write command to file: %s', self::lastErrorFor('file_put_contents')), 'Command error');
+            $this->wpDie($commandUrl, sprintf('Could not write command to file: %s', self::lastErrorFor('file_put_contents')), 'Command error');
             exit;
         }
         unset($command);
         require $evalFile;
+    }
+
+    /**
+     * @param $name string
+     *
+     * @return null|string
+     */
+    public function findActivePublicKey($name)
+    {
+        $fallback = false;
+        while (true) {
+            if (!$fallback) {
+                $keys = $this->context->optionGet('mwp_public_keys', array());
+            } else {
+                $keys = json_decode(self::httpGetContents('https://cdn.managewp.com/public-keys'));
+            }
+            foreach ($keys as $key) {
+                if (empty($key['id']) || $key['id'] !== $name) {
+                    continue;
+                }
+                if (empty($key['validFrom']) || empty($key['validTo']) || empty($key['publicKey']) || empty($key['service'])) {
+                    continue;
+                }
+                $timeNow = new DateTime();
+                if ($timeNow < new DateTime($key['validFrom']) || $timeNow > new DateTime($key['validTo'])) {
+                    continue;
+                }
+                return $key['publicKey'];
+            }
+            if (!$fallback) {
+                $fallback = true;
+                continue;
+            }
+            break;
+        }
+        return null;
     }
 
     /**
@@ -158,7 +216,8 @@ Establish connection with <strong>%s</strong>?
      */
     private static function httpGetContents($url)
     {
-        $parts = parse_url($url);
+        $parts    = parse_url($url);
+        $httpHost = $parts['host'];
         if ($parts['scheme'] === 'https') {
             list($transport, $ctx) = self::getSecureTransport();
             $port = ':443';
@@ -169,6 +228,10 @@ Establish connection with <strong>%s</strong>?
         }
         if (!empty($parts['port'])) {
             $port = ":$parts[port]";
+        }
+        if (($parts['scheme'] === 'https' && $port !== ':443') || ($parts['scheme'] === 'http' && $port !== ':80')) {
+            // Non-default port should be present in the "Host" header.
+            $httpHost .= $port;
         }
         $hostPort = "$parts[host]$port";
         $sslError = null;
@@ -184,7 +247,7 @@ Establish connection with <strong>%s</strong>?
                         continue;
                     }
                 }
-                throw new Exception(sprintf('Could not connect to host (%s): %s', $errstr, $sslError));
+                throw new Exception(sprintf('Could not connect to %s: %s (%d); %s', "$transport://$hostPort", $errstr, $errno, $sslError));
             }
             break;
         }
@@ -192,7 +255,7 @@ Establish connection with <strong>%s</strong>?
         $query   = empty($parts['query']) ? '' : "?$parts[query]";
         $request = array(
             "GET $path$query HTTP/1.1",
-            "Host: $hostPort",
+            "Host: $httpHost",
             "Connection: close",
             "", "",
         );
@@ -203,17 +266,19 @@ Establish connection with <strong>%s</strong>?
         // Read headers.
         $gotFirstLine = false;
         stream_set_timeout($sock, 60);
-        $chunked = false;
+        $headers = array();
+        $status  = 0;
         while (true) {
             $line = @fgets($sock, 4096);
             if ($line === false) {
-                $meta = @stream_get_meta_data($sock);
+                $error = self::lastErrorFor('fgets');
+                $meta  = @stream_get_meta_data($sock);
                 if (!empty($meta['timed_out'])) {
-                    throw new Exception(sprintf('Could not read response from: timeout', self::lastErrorFor('fgets')));
+                    throw new Exception('Could not read header: timeout');
                 } elseif (!empty($meta['eof'])) {
-                    throw new Exception(sprintf('Could not read response from: EOF', self::lastErrorFor('fgets')));
+                    throw new Exception('Could not read header: EOF');
                 }
-                throw new Exception(sprintf('Could not read response from %s: %s', self::lastErrorFor('fgets')));
+                throw new Exception(sprintf('Could not read header: %s', $error));
             }
             if ($line === "\r\n") {
                 break;
@@ -224,9 +289,7 @@ Establish connection with <strong>%s</strong>?
                 if (count($parts) !== 2) {
                     throw new Exception(sprintf('Invalid HTTP response header for: %s', $line));
                 }
-                if (strcasecmp('Transfer-Encoding', $parts[0]) === 0 && trim($parts[1]) === 'chunked') {
-                    $chunked = true;
-                }
+                $headers[strtolower($parts[0])] = trim($parts[1]);
                 continue;
             }
             $gotFirstLine = true;
@@ -234,20 +297,48 @@ Establish connection with <strong>%s</strong>?
                 throw new Exception(sprintf('Invalid HTTP response from %s: %s', $line));
             }
             $status = (int)$matches[1];
-            if ($status !== 200) {
-                throw new Exception(sprintf('Got HTTP response status "%s %s", expected 200', $status, trim($matches[2])));
-            }
         }
-
-        if ($chunked) {
+        if ($status >= 300 && $status < 400) {
+            throw new Exception(sprintf('Got a HTTP %d redirect to %s', $status, @$headers['location']));
+        }
+        if ($status !== 200) {
+            throw new Exception(sprintf('Got HTTP response code %d, expected 200', $status));
+        }
+        if (isset($headers['transfer-encoding']) && $headers['transfer-encoding'] === 'chunked') {
             return self::dechunkGetContents($sock);
         }
-
-        $content = @stream_get_contents($sock);
-        if ($content === false) {
-            throw new Exception(sprintf('Read response body: %s', self::lastErrorFor('stream_get_contents')));
+        $length = 0;
+        if (isset($headers['content-length'])) {
+            $length = (int)$headers['content-length'];
         }
-        return $content;
+        return self::limitGetContents($sock, $length);
+    }
+
+    /**
+     * @param $sock   resource
+     * @param $length int
+     *
+     * @return string
+     * @throws Exception
+     */
+    public static function limitGetContents($sock, $length)
+    {
+        $data = '';
+        while (strlen($data) < $length) {
+            $chunk = @fread($sock, $length - strlen($data));
+            if ($chunk === false) {
+                $error = self::lastErrorFor('fread');
+                $meta  = @stream_get_meta_data($sock);
+                if (!empty($meta['timed_out'])) {
+                    throw new Exception('Could not read body: timeout');
+                } elseif (!empty($meta['eof'])) {
+                    throw new Exception('Could not read body: EOF');
+                }
+                throw new Exception(sprintf('Could not read body: %s', $error));
+            }
+            $data .= $chunk;
+        }
+        return $data;
     }
 
     /**
@@ -324,7 +415,7 @@ Establish connection with <strong>%s</strong>?
     private static function getSecureTransport()
     {
         $available = stream_get_transports();
-        $attempted = array('tls', 'tlsv1.2', 'tlsv1.1', 'tlsv1.0');
+        $attempted = array('ssl', 'tls', 'tlsv1.2', 'tlsv1.1', 'tlsv1.0');
 
         $ctx = stream_context_create(array(
             'ssl' => array(
@@ -345,6 +436,8 @@ Establish connection with <strong>%s</strong>?
     }
 
     /**
+     * Dumps essential certificates to disk, enough to visit managewp.com, managewp.test, godaddy.com.
+     *
      * @return resource
      * @throws Exception
      */

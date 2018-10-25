@@ -56,6 +56,11 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.6.3 =
+
+- Fix: Edge cases when Local Sync was unsuccessful.
+- Fix: WooCommerce database upgrade not showing up on the ManageWP/Pro Sites dashboard.
+
 = 4.6.2 =
 
 - Fix: Local Sync tool improvements.

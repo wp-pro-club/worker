@@ -594,14 +594,27 @@ class MMB_Installer extends MMB_Core
             return true;
         }
 
-        if (!is_callable('WC_Install::get_db_update_callbacks')) {
-            return false;
+        $latestUpdate = $this->get_wc_db_latest_update();
+
+        return !is_null($current_db_version) && !is_null($latestUpdate) &&
+            version_compare($current_db_version, $latestUpdate, '<');
+    }
+
+    private function get_wc_db_latest_update()
+    {
+        $regexp   = "{'(\d+\.)(\d+\.)(\d+)'}"; // version in single quote '1.0.0', '2.1.3', '3.1.22' etc
+        $fileName = WP_PLUGIN_DIR.'/woocommerce/includes/class-wc-install.php';
+
+        if (file_exists($fileName)) {
+            $fileContent = file_get_contents($fileName);
+            preg_match_all($regexp, $fileContent, $matches);
+
+            if (!empty($matches[0])) {
+                $latestUpdate = trim(end($matches[0]), "'");
+                return $latestUpdate;
+            }
         }
-
-        /** @handled static */
-        $updates = WC_Install::get_db_update_callbacks();
-
-        return !is_null($current_db_version) && version_compare($current_db_version, max(array_keys($updates)), '<');
+        return null;
     }
 
     public function upgrade_themes($themes = false)
