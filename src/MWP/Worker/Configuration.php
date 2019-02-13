@@ -75,6 +75,15 @@ class MWP_Worker_Configuration
         return $this->isCommunicationKey($keyName) ? mwp_get_communication_key() : mwp_get_service_key();
     }
 
+    public function acceptCommunicationKeyIfEmpty($keyName, $communicationKey)
+    {
+        if (!$this->isCommunicationKey($keyName)) {
+            return;
+        }
+
+        mwp_add_as_site_communication_key($communicationKey);
+    }
+
     protected function findKeyData($keyName)
     {
         $keys = $this->context->optionGet('mwp_public_keys', null);

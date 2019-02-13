@@ -61,7 +61,7 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $siteUrl           = $this->context->getSiteUrl();
         $isWww             = substr($request->server['HTTP_HOST'], 0, 4) === 'www.';
         $isHttps           = $this->context->isSsl();
-        $shouldWww         = (bool) preg_match('{^https?://www\.}', $siteUrl);
+        $shouldWww         = (bool)preg_match('{^https?://www\.}', $siteUrl);
         $shouldHttps       = $this->context->isSslAdmin();
         $alreadyRedirected = !empty($request->query['auto_login_fixed']);
         if (
@@ -97,7 +97,6 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
 
         $where = isset($request->query['mwp_goto']) ? $request->query['mwp_goto'] : '';
 
-        $signature = base64_decode($request->query['signature']);
         $messageId = $request->query['message_id'];
 
         $currentUser = $this->context->getCurrentUser();
@@ -129,11 +128,23 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
             $this->context->wpDie(__("The automatic login token was already used. Please try again, or, if this keeps happening, contact support.", 'worker'), '', 200);
         }
 
-        if ($secureKey = $this->configuration->getSecureKey()) {
-            // Legacy support, to be removed.
-            $verify = (md5($where.$messageId.$secureKey) === $signature);
-        } else {
-            $verify = $this->signer->verify($where.$messageId, $signature, $this->configuration->getPublicKey());
+        $verify = false;
+
+        if (!empty($request->query['service_sign']) && !empty($request->query['service_key']) && !empty($request->query['site_id'])) {
+            $communicationKey = mwp_get_communication_key($request->query['site_id']);
+            $serviceSignature = base64_decode($request->query['service_sign']);
+            $host             = strtolower($request->server['HTTP_HOST']);
+            $host             = preg_replace('/^www\./', '', $host);
+            $host             = preg_replace('/:\d+$/', '', $host);
+
+            $verify = $this->signer->verify($host.$communicationKey.$where.$messageId, $serviceSignature, $this->configuration->getLivePublicKey($request->query['service_key']));
+        }
+
+        $newComm = $this->context->optionGet('mwp_new_communication_established', false);
+
+        if (!$verify && (empty($request->query['site_id']) || empty($newComm))) {
+            $signature = base64_decode($request->query['signature']);
+            $verify    = $this->signer->verify($where.$messageId, $signature, $this->configuration->getPublicKey());
         }
 
         if (!$verify) {
