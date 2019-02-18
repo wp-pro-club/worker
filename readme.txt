@@ -56,6 +56,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.6.6 =
+
+- Fix: Omit extra query parameters for One Click Login after a successful login.
+
 = 4.6.5 =
 
 - Fix: Edge cases where the Worker plugin might not be able to communicate with our system.

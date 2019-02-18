@@ -102,7 +102,7 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $currentUser = $this->context->getCurrentUser();
 
         $adminUri    = rtrim($this->context->getAdminUrl(''), '/').'/'.$where;
-        $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect', 'auto_login_fixed'));
+        $redirectUri = $this->modifyUriParameters($adminUri, $request->query, array('signature', 'username', 'auto_login', 'message_id', 'mwp_goto', 'mwpredirect', 'auto_login_fixed', 'service_sign', 'service_key', 'site_id'));
 
         if ($currentUser->user_login === $username) {
             try {
