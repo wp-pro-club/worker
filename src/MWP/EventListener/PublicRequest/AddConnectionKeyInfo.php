@@ -48,6 +48,16 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
         $this->context->enqueueStyle('wp-jquery-ui-dialog');
     }
 
+    protected function checkForKeyRefresh()
+    {
+        if (empty($_GET['mwp_force_key_refresh'])) {
+            return false;
+        }
+
+        mwp_refresh_live_public_keys(array());
+        return true;
+    }
+
     protected function checkForDeletedConnectionKey()
     {
         if (!isset($_GET['mwp_nonce']) || !wp_verify_nonce($_GET['mwp_nonce'], 'mwp_deactivation_key')) {
@@ -219,6 +229,8 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
             return;
         }
 
+        $refreshedKeys = $this->checkForKeyRefresh();
+
         ob_start();
         ?>
         <div id="mwp_connection_key_dialog" style="display: none;">
@@ -301,6 +313,19 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
             <button class="copy-key-button btn" style="width: 76px; height: 44px;"
                     data-clipboard-target="#connection-key">Copy
             </button>
+
+            <?php if ($refreshedKeys) { ?>
+                <p>Currently loaded keys:</p>
+                <pre><?php
+                    if (version_compare(PHP_VERSION, '5.4', '>=') && defined('JSON_PRETTY_PRINT')) {
+                        echo trim(json_encode($this->context->optionGet('mwp_public_keys', null), JSON_PRETTY_PRINT));
+                    } else {
+                        echo trim(json_encode($this->context->optionGet('mwp_public_keys', null)));
+                    }
+                    ?></pre>
+                <?php
+            }
+            ?>
         </div>
         <?php
 

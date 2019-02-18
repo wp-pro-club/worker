@@ -789,6 +789,7 @@ function mwp_refresh_live_public_keys($params = array())
         return;
     }
 
+    mwp_context()->optionSet('mwp_public_keys_refresh_time', time(), true);
     mwp_context()->optionSet('mwp_public_keys', $liveKeys, true);
 }
 

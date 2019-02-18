@@ -46,7 +46,7 @@ class MWP_EventListener_MasterRequest_AuthenticateRequest implements Symfony_Eve
         $establishedNewCommunication = $this->context->optionGet('mwp_new_communication_established', false);
 
         if (!empty($establishedNewCommunication) && !empty($siteId)) {
-            throw new MWP_Worker_Exception(MWP_Worker_Exception::AUTHENTICATION_PUBLIC_KEY_EMPTY, "Authentication failed. Deactivate and activate the ManageWP Worker plugin on this site, then re-add it to your ManageWP account.");
+            throw new MWP_Worker_Exception(MWP_Worker_Exception::AUTHENTICATION_INVALID_SERVICE_SIGNATURE, "Invalid message signature. Please re-add this website to your ManageWP account.");
         }
 
         $publicKey = $this->configuration->getPublicKey();
