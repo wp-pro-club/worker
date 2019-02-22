@@ -56,7 +56,7 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
-= 4.6.8 =
+= 4.7.0 =
 
 - Improvement: Translations for the new Connection Management dialog.
 - Fix: An error that might occur when activating the Worker plugin.

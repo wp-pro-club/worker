@@ -40,6 +40,9 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
         $this->context->enqueueScript('jquery');
         $this->context->enqueueScript('jquery-ui-core');
         $this->context->enqueueScript('jquery-ui-dialog');
+
+        /** @handled function */
+        load_plugin_textdomain('worker');
     }
 
     public function enqueueConnectionModalOpenStyles()

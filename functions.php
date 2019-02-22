@@ -885,6 +885,6 @@ EOL;
 function site_in_mwp_maintenance_mode()
 {
     $class   = 'notice notice-warning is-dismissible';
-    $message = __('The site is currently in maintenance mode.', 'worker');
+    $message = esc_html__('The site is currently in maintenance mode.', 'worker');
     printf('<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
 }
