@@ -154,6 +154,7 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
         $user = $this->context->getUserByUsername($username);
 
         if ($user === null) {
+            /* translators: the variable in this string is the WordPress username that could not be found */
             $this->context->wpDie(sprintf(__("User <strong>%s</strong> could not be found.", 'worker'), htmlspecialchars($username)), '', 200);
         }
 

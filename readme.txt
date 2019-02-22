@@ -56,6 +56,11 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.6.8 =
+
+- Improvement: Translations for the new Connection Management dialog.
+- Fix: An error that might occur when activating the Worker plugin.
+
 = 4.6.6 =
 
 - Fix: Omit extra query parameters for One Click Login after a successful login.

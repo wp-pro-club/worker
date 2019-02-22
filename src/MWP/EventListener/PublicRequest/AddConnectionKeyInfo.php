@@ -200,7 +200,7 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
                         modal: true,
                         width: '600px',
                         height: 'auto',
-                        title: 'Connection Management',
+                        title: <?php echo json_encode(esc_html__('Connection Management', 'worker')); ?>,
                         close: function () {
                             $(this).dialog("destroy");
                         }
@@ -245,38 +245,82 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
             }
 
             if (empty($communicationKeys)) { ?>
-                <p style="margin-top: 0">There are two ways to connect your website to the management dashboard:</p>
+                <p style="margin-top: 0"><?php
+                    /** @handled function */
+                    echo esc_html__('There are two ways to connect your website to the management dashboard:', 'worker'); ?>
+                </p>
 
-                <h2>Automatic</h2>
+                <h2><?php
+                    /** @handled function */
+                    echo esc_html__('Automatic', 'worker'); ?>
+                </h2>
                 <ol>
-                    <li>Log into your <a href="https://managewp.com/" target="_blank">ManageWP</a> or <a
-                                href="https://godaddy.com/pro" target="_blank">Pro Sites</a> account.
+                    <li>
+                        <?php
+                        /** @handled function */
+                        /* translators: the first variable is a link to managewp.com and the second variable is a link to godaddy.com/pro */
+                        echo sprintf(wp_kses(__('Log into your <a href="%1$s" target="_blank">ManageWP</a> or <a href="%2$s" target="_blank">Pro Sites</a> account.', 'worker'), array('a' => array('href' => array(), 'target' => array()))), 'https://managewp.com/', 'https://godaddy.com/pro'); ?>
                     </li>
-                    <li>Click the Add website icon at the top left.</li>
-                    <li>Enter this website's URL, admin username and password, and the system will take care of
-                        everything.
+                    <li><?php
+                        /** @handled function */
+                        echo esc_html__('Click the Add website icon at the top left.', 'worker'); ?>
+                    </li>
+                    <li>
+                        <?php
+                        /** @handled function */
+                        echo esc_html__('Enter this website\'s URL, admin username and password, and the system will take care of everything.', 'worker'); ?>
                     </li>
                 </ol>
 
-                <h2>Manual</h2>
+                <h2><?php
+                    /** @handled function */
+                    echo esc_html__('Manual', 'worker'); ?>
+                </h2>
                 <ol>
-                    <li>Install and activate the <strong>Worker</strong> plugin.</li>
-                    <li>Copy the connection key below.</li>
-                    <li>Log into your <a href="https://managewp.com/" target="_blank">ManageWP</a> or <a
-                                href="https://godaddy.com/pro" target="_blank">Pro Sites</a> account.
+                    <li><?php
+                        /** @handled function */
+                        echo wp_kses(__('Install and activate the <b>Worker</b> plugin.', 'worker'), array('b' => array())); ?>
                     </li>
-                    <li>Click the Add website icon at the top left.</li>
-                    <li>Enter this website's URL. When prompted, paste the connection key.</li>
+                    <li><?php
+                        /** @handled function */
+                        echo esc_html__('Copy the connection key below.', 'worker'); ?>
+                    </li>
+                    <li>
+                        <?php
+                        /** @handled function */
+                        /* translators: the first variable is a link to managewp.com and the second variable is a link to godaddy.com/pro */
+                        echo sprintf(wp_kses(__('Log into your <a href="%1$s" target="_blank">ManageWP</a> or <a href="%2$s" target="_blank">Pro Sites</a> account.', 'worker'), array('a' => array('href' => array(), 'target' => array()))), 'https://managewp.com/', 'https://godaddy.com/pro'); ?>
+                    </li>
+                    <li><?php
+                        /** @handled function */
+                        echo esc_html__('Click the Add website icon at the top left.', 'worker'); ?>
+                    </li>
+                    <li><?php
+                        /** @handled function */
+                        echo esc_html__('Enter this website\'s URL. When prompted, paste the connection key.', 'worker'); ?>
+                    </li>
                 </ol>
             <?php } else {
                 ?>
-                <p style="margin-top: 0">Here is the list of currently active connections to this Worker plugin:</p>
+                <p style="margin-top: 0"><?php
+                    /** @handled function */
+                    echo esc_html__('Here is the list of currently active connections to this Worker plugin:', 'worker'); ?>
+                </p>
 
                 <table style="width: 100%;">
                     <tr>
-                        <th>ID</th>
-                        <th>Connected</th>
-                        <th>Last Used</th>
+                        <th><?php
+                            /** @handled function */
+                            echo esc_html__('ID', 'worker'); ?>
+                        </th>
+                        <th><?php
+                            /** @handled function */
+                            echo esc_html__('Connected', 'worker'); ?>
+                        </th>
+                        <th><?php
+                            /** @handled function */
+                            echo esc_html__('Last Used', 'worker'); ?>
+                        </th>
                         <th></th>
                     </tr>
                     <?php
@@ -284,38 +328,61 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
                     foreach ($communicationKeys as $siteId => $communicationKey) { ?>
                         <tr>
                             <td><?php echo $siteId !== 'any' ? $siteId : '*'; ?></td>
-                            <td><?php echo $communicationKey['added'] != null ? human_time_diff($communicationKey['added'], $time).' ago' : 'N/A'; ?></td>
+                            <td><?php
+                                if ($communicationKey['added'] != null) {
+                                    /** @handled function */
+                                    /* translators: the variable is going to contain a human time difference string like "2 days" */
+                                    echo sprintf(esc_html__('%s ago', 'worker'), human_time_diff($communicationKey['added'], $time));
+                                } else {
+                                    /** @handled function */
+                                    echo esc_html__('N/A', 'worker');
+                                } ?>
+                            </td>
                             <td>
                                 <?php
                                 $used = $this->context->optionGet('mwp_key_last_used_'.$siteId, null);
                                 if (!empty($used)) {
-                                    echo human_time_diff($used, $time).' ago';
+                                    /** @handled function */
+                                    /* translators: the variable is going to contain a human time difference string like "2 days" */
+                                    echo sprintf(esc_html__('%s ago', 'worker'), human_time_diff($used, $time));
                                 } else {
-                                    echo 'N/A';
-                                }
-                                ?>
+                                    /** @handled function */
+                                    echo esc_html__('N/A', 'worker');
+                                } ?>
                             </td>
                             <td style="text-align: right">
-                                <a href="<?php echo $this->context->wpNonceUrl($this->context->getAdminUrl('plugins.php?worker_connections=1&action=mwp_deactivate_key&connection_id='.$siteId), 'mwp_deactivation_key', 'mwp_nonce'); ?>">Disconnect</a>
+                                <a href="<?php echo $this->context->wpNonceUrl($this->context->getAdminUrl('plugins.php?worker_connections=1&action=mwp_deactivate_key&connection_id='.$siteId), 'mwp_deactivation_key', 'mwp_nonce'); ?>">
+                                    <?php
+                                    /** @handled function */
+                                    echo esc_html__('Disconnect', 'worker'); ?>
+                                </a>
                             </td>
                         </tr>
                         <?php
                     }
                     ?>
                 </table>
-
                 <?php
             } ?>
 
-            <p style="margin-bottom: 7px; margin-top: 27px;">Connection key:</p>
+            <p style="margin-bottom: 7px; margin-top: 27px;"><?php
+                /** @handled function */
+                echo esc_html__('Connection key:', 'worker'); ?>
+            </p>
             <input id="connection-key" rows="1" class="key-block" onclick="this.focus();this.select()"
                    readonly="readonly" value="<?php echo mwp_get_potential_key(); ?>">
             <button class="copy-key-button btn" style="width: 76px; height: 44px;"
-                    data-clipboard-target="#connection-key">Copy
+                    data-clipboard-target="#connection-key">
+                <?php
+                /** @handled function */
+                echo esc_html__('Copy', 'worker'); ?>
             </button>
 
             <?php if ($refreshedKeys) { ?>
-                <p>Currently loaded keys:</p>
+                <p><?php
+                    /** @handled function */
+                    echo esc_html__('Currently loaded keys:', 'worker'); ?>
+                </p>
                 <pre><?php
                     if (version_compare(PHP_VERSION, '5.4', '>=') && defined('JSON_PRETTY_PRINT')) {
                         echo trim(json_encode($this->context->optionGet('mwp_public_keys', null), JSON_PRETTY_PRINT));
@@ -350,7 +417,8 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
             return $meta;
         }
 
-        $meta[] = '<a href="#" id="mwp-view-connection-key" mwp-key="'.mwp_get_potential_key().'">Connection Management</a>';
+        /** @handled function */
+        $meta[] = '<a href="#" id="mwp-view-connection-key" mwp-key="'.mwp_get_potential_key().'">'.esc_html__('Connection Management', 'worker').'</a>';
 
         return $meta;
     }
