@@ -67,13 +67,6 @@ class MWP_EventListener_PublicRequest_SetPluginInfo implements Symfony_EventDisp
         if ($this->context->optionGet('mwp_pro_connected') == true) {
             $plugins[$this->slug]['Name']        = 'GoDaddy Pro Sites Worker';
             $plugins[$this->slug]['Title']       = 'GoDaddy Pro Sites Worker';
-            $plugins[$this->slug]['Description'] = 'We help you efficiently manage all your WordPress websites from your GoDaddy Pro Sites dashboard. <strong>Updates, backups, 1-click login, migrations, security</strong> and much more.';
-            $plugins[$this->slug]['AuthorURI']   = 'https://www.godaddy.com/pro/sites';
-            $plugins[$this->slug]['Author']      = 'GoDaddy';
-            $plugins[$this->slug]['AuthorName']  = 'GoDaddy';
-            $plugins[$this->slug]['PluginURI']   = '';
-        } else {
-            $plugins[$this->slug]['Description'] = 'We help you efficiently manage all your WordPress websites from one place. <strong>Updates, backups, 1-click login, migrations, security</strong> and much more.';
         }
 
         if (!$this->brand->isActive()) {
@@ -101,7 +94,7 @@ class MWP_EventListener_PublicRequest_SetPluginInfo implements Symfony_EventDisp
     public function pluginListFilter($plugins)
     {
         $queryParameters = $this->context->get('_GET');
-        
+
         if (!empty($queryParameters['showWorker'])) {
             return $plugins;
         }

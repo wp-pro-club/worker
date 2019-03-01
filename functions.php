@@ -782,21 +782,106 @@ function mwp_generate_uuid4()
 
 function mwp_refresh_live_public_keys($params = array())
 {
-    $liveContent = mwp_get_public_keys_from_live();
-    $liveKeys    = !empty($liveContent) ? @json_decode($liveContent, true) : null;
+    $liveKeys     = null;
+    $lastResponse = null;
+    $servers      = array('cdn.managewp.com', 'keys.managewp.com');
+
+    foreach ($servers as $server) {
+        if (!empty($liveKeys)) {
+            continue;
+        }
+
+        $lastResponse = mwp_get_and_decode_public_keys($server);
+
+        if (is_array($lastResponse) && !empty($lastResponse['keys']) && !empty($lastResponse['success'])) {
+            $liveKeys = $lastResponse['keys'];
+        }
+    }
 
     if (empty($liveKeys)) {
-        return;
+        return $lastResponse;
     }
 
     mwp_context()->optionSet('mwp_public_keys_refresh_time', time(), true);
     mwp_context()->optionSet('mwp_public_keys', $liveKeys, true);
+
+    return $lastResponse;
 }
 
-function mwp_get_public_keys_from_live()
+function mwp_get_and_decode_public_keys($domain)
 {
-    $result = @file_get_contents('https://cdn.managewp.com/public-keys', false, @stream_context_create(array(
+    $liveContent = mwp_get_public_keys_from_live($domain);
+
+    if ($liveContent['success'] === false) {
+        return array(
+            'success' => false,
+            'message' => $liveContent['message'],
+        );
+    }
+
+    $liveContent = $liveContent['result'];
+
+    if (empty($liveContent)) {
+        return array(
+            'success' => false,
+            'message' => 'Empty content received from live.',
+        );
+    }
+
+    $liveKeys = @json_decode($liveContent, true);
+
+    if (empty($liveKeys)) {
+        return array(
+            'success' => false,
+            'message' => 'Could not json decode the received keys. Received: '.$liveKeys,
+        );
+    }
+
+    return array(
+        'success' => true,
+        'keys'    => $liveKeys,
+    );
+}
+
+function mwp_get_public_keys_from_live($domain)
+{
+    $result = wp_remote_get("https://$domain/public-keys");
+
+    if (!is_array($result) || empty($result['body'])) {
+        return mwp_get_public_keys_from_live_fallback($domain);
+    }
+
+    return array(
+        'success' => true,
+        'result'  => $result['body'],
+    );
+}
+
+function mwp_get_public_keys_from_live_fallback($domain)
+{
+    $fixedDomainMap = array(
+        'keys.managewp.com' => '216.69.138.218',
+    );
+
+    $originalDomain = $domain;
+    $domain         = dns_resolve_key_domain($domain);
+
+    if (preg_match('/^\d+\.\d+\.\d+\.\d+$/', $domain) !== 1 && !empty($fixedDomainMap[$domain])) {
+        $domain = $fixedDomainMap[$domain];
+    }
+
+    $transportToUse = get_secure_protocol();
+
+    if ($transportToUse == null) {
+        return array(
+            'success' => false,
+            'message' => 'Could not find a transport to use.',
+        );
+    }
+
+    $socket = @stream_socket_client("$transportToUse://$domain:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, @stream_context_create(array(
         'ssl' => array(
+            'peer_name'         => $originalDomain,
             'verify_peer'       => true,
             'verify_peer_name'  => true,
             'allow_self_signed' => false,
@@ -804,14 +889,39 @@ function mwp_get_public_keys_from_live()
         ),
     )));
 
-    if ($result === false) {
-        return mwp_get_public_keys_from_live_fallback();
+    if (!$socket) {
+        return array(
+            'success' => false,
+            'message' => 'Failed opening a socket to ManageWP keys (on '.$domain.'). Error: '.$errstr.', Error number: '.$errno,
+        );
     }
 
-    return $result;
+    $requestContent = <<<EOL
+GET /public-keys HTTP/1.1
+Host: cdn.managewp.com
+Accept-Language: en-US,en;q=0.9,hr;q=0.8,sr;q=0.7
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+Cache-Control: max-age=0
+Authority: cdn.managewp.com
+Connection: close
+
+
+EOL;
+
+
+    if (@fwrite($socket, $requestContent) === false) {
+        return array(
+            'success' => false,
+            'message' => 'Could not write the public-key request to the socket.',
+        );
+    }
+
+    return read_stream_response($socket);
 }
 
-function mwp_get_public_keys_from_live_fallback()
+function get_secure_protocol()
 {
     $transports         = array_flip(stream_get_transports());
     $preferredTransport = array(
@@ -831,44 +941,20 @@ function mwp_get_public_keys_from_live_fallback()
         $transportToUse = $transport;
     }
 
-    $socket = @stream_socket_client("$transportToUse://cdn.managewp.com:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, @stream_context_create(array(
-        'ssl' => array(
-            'verify_peer'       => true,
-            'verify_peer_name'  => true,
-            'allow_self_signed' => false,
-            'cafile'            => dirname(__FILE__).'/publickeys/godaddy_g2_root.cer',
-        ),
-    )));
+    return $transportToUse;
+}
 
-    if (!$socket) {
-        return null;
-    }
-
-    $requestContent = <<<EOL
-GET /public-keys HTTP/1.1
-Host: cdn.managewp.com
-Accept-Language: en-US,en;q=0.9,hr;q=0.8,sr;q=0.7
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
-Cache-Control: max-age=0
-Authority: cdn.managewp.com
-Connection: close
-
-
-EOL;
-
-
-    if (@fwrite($socket, $requestContent) === false) {
-        return null;
-    }
-
+function read_stream_response($socket)
+{
     do {
         $line = @fgets($socket);
     } while ($line !== false && $line !== "\n" && $line !== "\r\n");
 
     if ($line === false) {
-        return null;
+        return array(
+            'success' => false,
+            'message' => 'No response received from the public-key server.',
+        );
     }
 
     $content = @stream_get_contents($socket);
@@ -876,10 +962,66 @@ EOL;
     @fclose($socket);
 
     if ($content === false || !is_string($content)) {
-        return null;
+        return array(
+            'success' => false,
+            'message' => 'Invalid response received from the public-key server.',
+        );
     }
 
-    return $content;
+    return array(
+        'success' => true,
+        'result'  => $content,
+    );
+}
+
+function dns_resolve_key_domain($domain)
+{
+    $transportToUse = get_secure_protocol();
+
+    if ($transportToUse == null) {
+        return $domain;
+    }
+
+    $socket = @stream_socket_client("$transportToUse://1.1.1.1:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT);
+
+    if (!$socket) {
+        return $domain;
+    }
+
+    $requestContent = <<<PHP
+GET /dns-query?name=[DOMAIN]&type=A HTTP/1.1
+Host: 1.1.1.1
+Accept: application/dns-json
+Connection: close
+
+
+PHP;
+
+    $requestContent = str_replace('[DOMAIN]', $domain, $requestContent);
+
+    if (@fwrite($socket, $requestContent) === false) {
+        return $domain;
+    }
+
+    $result = read_stream_response($socket);
+
+    if ($result['success'] === false || empty($result['result'])) {
+        return $domain;
+    }
+
+    $content = @json_decode($result['result'], true);
+
+    if (empty($content['Answer']) || !is_array($content['Answer'])) {
+        return $domain;
+    }
+
+    $record = $content['Answer'][count($content['Answer']) - 1];
+
+    if (empty($record['data']) || preg_match('/^\d+\.\d+\.\d+\.\d+$/', $record['data']) !== 1) {
+        return $domain;
+    }
+
+    return $record['data'];
 }
 
 function site_in_mwp_maintenance_mode()

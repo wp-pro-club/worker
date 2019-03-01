@@ -57,8 +57,7 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
             return false;
         }
 
-        mwp_refresh_live_public_keys(array());
-        return true;
+        return mwp_refresh_live_public_keys(array());
     }
 
     protected function checkForDeletedConnectionKey()
@@ -381,7 +380,18 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
                 echo esc_html__('Copy', 'worker'); ?>
             </button>
 
-            <?php if ($refreshedKeys) { ?>
+            <?php if ($refreshedKeys !== false) { ?>
+                <p>
+                    <?php
+                    if ($refreshedKeys['success'] === true) {
+                        echo 'Keys successfully refreshed!';
+                    } else {
+                        echo 'Keys were not successfully refreshed. Error: '.$refreshedKeys['message'];
+                    } ?>
+                </p>
+                <p>
+                    <?php echo 'Last communication error: '.$this->context->optionGet('mwp_last_communication_error', '') ?>
+                </p>
                 <p><?php
                     /** @handled function */
                     echo esc_html__('Currently loaded keys:', 'worker'); ?>

@@ -43,6 +43,7 @@ class MWP_EventListener_MasterRequest_AuthenticateServiceRequest implements Symf
         }
 
         $serviceSignature = $request->getServiceSignature();
+        $noHostSignature  = $request->getNoHostSignature();
         $keyName          = $request->getKeyName();
 
         if (empty($serviceSignature) || empty($keyName)) {
@@ -54,23 +55,32 @@ class MWP_EventListener_MasterRequest_AuthenticateServiceRequest implements Symf
         if (empty($publicKey)) {
             // for now do not throw an exception, just do not authenticate the request
             // later we should start throwing an exception here when this becomes the main communication method
+            $this->context->optionSet('mwp_last_communication_error', 'Could not find the appropriate communication key. Searched for: '.$keyName);
             return;
         }
 
         $communicationKey = $this->configuration->getCommunicationStringByKeyName($keyName);
-        $messageToCheck   = $request->server['HTTP_HOST'].$communicationKey.$request->getAction().$request->getNonce().json_encode($request->getParams());
+        $messageToCheck   = '';
+
+        if (empty($noHostSignature)) {
+            $messageToCheck = $request->server['HTTP_HOST'];
+        }
+
+        $messageToCheck .= $communicationKey.$request->getAction().$request->getNonce().json_encode($request->getParams());
 
         if (empty($messageToCheck)) {
             // for now do not throw an exception, just do not authenticate the request
             // later we should start throwing an exception here when this becomes the main communication method
+            $this->context->optionSet('mwp_last_communication_error', 'Unexpected: message to check is empty. Host: '.$request->server['HTTP_HOST']);
             return;
         }
 
-        $verify = $this->signer->verify($messageToCheck, $serviceSignature, $publicKey);
+        $verify = $this->signer->verify($messageToCheck, !empty($noHostSignature) ? $noHostSignature : $serviceSignature, $publicKey);
 
         if (!$verify) {
             // for now do not throw an exception, just do not authenticate the request
             // later we should start throwing an exception here when this becomes the main communication method
+            $this->context->optionSet('mwp_last_communication_error', 'Message signature invalid. Tried to verify: '.$messageToCheck.', Signature: '.base64_encode($serviceSignature));
             return;
         }
 
