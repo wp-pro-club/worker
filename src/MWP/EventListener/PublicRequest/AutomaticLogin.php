@@ -48,12 +48,9 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
             return;
         }
 
-        if (!$this->configuration->getPublicKey()) {
-            // Site is not connected to a master instance.
-            return;
-        }
+        $isServiceSigned = !empty($request->query['service_sign']) && !empty($request->query['service_key']) && !empty($request->query['site_id']);
 
-        if (empty($request->query['auto_login']) || empty($request->query['signature']) || empty($request->query['message_id']) || !array_key_exists('mwp_goto', $request->query)) {
+        if (empty($request->query['auto_login']) || (empty($request->query['signature']) && !$isServiceSigned) || empty($request->query['message_id']) || !array_key_exists('mwp_goto', $request->query)) {
             return;
         }
 
@@ -131,27 +128,28 @@ class MWP_EventListener_PublicRequest_AutomaticLogin implements Symfony_EventDis
             $this->context->wpDie(esc_html__("The automatic login token was already used. Please try again, or, if this keeps happening, contact support.", 'worker'), '', 200);
         }
 
-        $verify = false;
+        $newComm   = $this->context->optionGet('mwp_new_communication_established', false);
+        $publicKey = null;
+        $message   = null;
+        $signed    = null;
 
-        if (!empty($request->query['service_sign']) && !empty($request->query['service_key']) && !empty($request->query['site_id'])) {
+        if ($isServiceSigned && !empty($newComm)) {
             $communicationKey = mwp_get_communication_key($request->query['site_id']);
-            $serviceSignature = base64_decode($request->query['service_sign']);
-            $host             = strtolower($request->server['HTTP_HOST']);
-            $host             = preg_replace('/^www\./', '', $host);
-            $host             = preg_replace('/:\d+$/', '', $host);
-
-            $verify = $this->signer->verify($host.$communicationKey.$where.$messageId, $serviceSignature, $this->configuration->getLivePublicKey($request->query['service_key']));
+            $publicKey        = $this->configuration->getLivePublicKey($request->query['service_key']);
+            $message          = $communicationKey.$where.$messageId;
+            $signed           = base64_decode($request->query['service_sign']);
+        } else {
+            $publicKey = $this->configuration->getPublicKey();
+            $message   = $where.$messageId;
+            $signed    = base64_decode($request->query['signature']);
         }
 
-        $newComm = $this->context->optionGet('mwp_new_communication_established', false);
-
-        if (!$verify && (empty($request->query['site_id']) || empty($newComm))) {
-            $signature = base64_decode($request->query['signature']);
-            $verify    = $this->signer->verify($where.$messageId, $signature, $this->configuration->getPublicKey());
+        if (empty($publicKey) || empty($message) || empty($signed)) {
+            $this->context->wpDie(esc_html__('The automatic login token isn\'t properly signed. Please contact our support for help.', 'worker'), '', 200);
         }
 
-        if (!$verify) {
-            $this->context->wpDie(esc_html__("The automatic login token is invalid. Please check if this website is properly connected with your dashboard, or, if this keeps happening, contact support.", 'worker'), '', 200);
+        if (!$this->signer->verify($message, $signed, $publicKey)) {
+            $this->context->wpDie(esc_html__('The automatic login token is invalid. Please check if this website is properly connected with your dashboard, or, if this keeps happening, contact support.', 'worker'), '', 200);
         }
 
         $user = $this->context->getUserByUsername($username);

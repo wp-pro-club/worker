@@ -495,6 +495,10 @@ EOF;
             include_once ABSPATH.'wp-admin/includes/file.php';
         }
 
+        if (!defined('FS_METHOD')) {
+            define( 'FS_METHOD', 'direct');
+        }
+
         if ((!defined('FTP_HOST') || !defined('FTP_USER')) && (get_filesystem_method(array(), false) != 'direct')) {
             return false;
         } else {

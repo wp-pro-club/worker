@@ -182,20 +182,18 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
             <?php } ?>
 
             jQuery(document).ready(function ($) {
-                var $connectionKeyDialog = $('#mwp_connection_key_dialog');
-
-                $('#mwp-view-connection-key').click(function (e) {
+                $(document).on('click', '#mwp-view-connection-key', function (e) {
                     e.preventDefault();
                     $(document).trigger('mwp-connection-dialog');
                 });
 
-                $('button.copy-key-button').click(function () {
+                $(document).on('click', 'button.copy-key-button', function () {
                     $('#connection-key').select();
                     document.execCommand('copy');
                 });
 
                 $(document).on('mwp-connection-dialog', function () {
-                    $connectionKeyDialog.dialog({
+                    $('#mwp_connection_key_dialog').dialog({
                         dialogClass: "mwp-dialog",
                         draggable: false,
                         resizable: false,

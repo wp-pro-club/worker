@@ -56,6 +56,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.7.7 =
+
+- Fix: Edge cases where one click login might fail due to the Host header changing.
+
 = 4.7.5 =
 
 - Fix: Edge cases where key fetching might fail and cause the connection to stop working.
