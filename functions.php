@@ -555,13 +555,13 @@ function mwp_set_plugin_priority()
     $pluginBasename = 'worker/init.php';
     $activePlugins  = get_option('active_plugins');
 
-    if (reset($activePlugins) === $pluginBasename) {
+    if (!is_array($activePlugins) || reset($activePlugins) === $pluginBasename) {
         return;
     }
 
     $workerKey = array_search($pluginBasename, $activePlugins);
 
-    if ($workerKey === false) {
+    if ($workerKey === false || $workerKey === null) {
         return;
     }
 
@@ -759,6 +759,73 @@ function mwp_provision_keys()
 {
     mwp_get_service_key();
     mwp_get_potential_key();
+}
+
+function mwp_add_post_to_link_monitor_check($postId)
+{
+    if (wp_get_post_parent_id($postId) !== 0) {
+        return;
+    }
+
+    $postsToSendToLinkMonitor = mwp_context()->transientGet('mwp_link_monitor_posts');
+    if ($postsToSendToLinkMonitor === false) {
+        $postsToSendToLinkMonitor = array();
+    }
+
+    if (in_array($postId, $postsToSendToLinkMonitor)) {
+        return;
+    }
+
+    $postsToSendToLinkMonitor[] = $postId;
+
+    //transient will expire after 30 days from time of update
+    mwp_context()->transientSet('link_monitor_posts', $postsToSendToLinkMonitor, 2592000);
+}
+
+function mwp_send_posts_to_link_monitor()
+{
+    $postsToSendToLinkMonitor = mwp_context()->transientGet('link_monitor_posts');
+    if ($postsToSendToLinkMonitor === false) {
+        return;
+    }
+
+    $siteIds = array_keys(mwp_context()->optionGet('mwp_communication_keys', array()));
+
+    foreach ($siteIds as $siteId) {
+        $body = array(
+            'qName'   => 'ha.link_monitor',
+            'content' => array(
+                'postIds' => $postsToSendToLinkMonitor,
+                'siteId'  => $siteId
+            ),
+            'delay'   => 0
+        );
+
+        // Queue the scan
+        $url                     = 'https://link-monitor-produce.managewp.com/produce';
+        $headers['content-type'] = 'application/json';
+        wp_remote_post($url, array(
+                'method'  => 'POST',
+                'timeout' => 5,
+                'headers' => $headers,
+                'body'    => json_encode($body),
+            )
+        );
+    }
+
+
+    // Clear transient
+    mwp_context()->transientDelete('link_monitor_posts');
+}
+
+function mwp_link_monitor_cron_recurrence_interval($schedules)
+{
+    $schedules['every_five_minutes'] = array(
+        'interval' => 300,
+        'display'  => __('Every 5 Minutes')
+    );
+
+    return $schedules;
 }
 
 function mwp_generate_uuid4()

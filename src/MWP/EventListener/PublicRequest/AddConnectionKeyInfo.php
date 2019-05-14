@@ -304,7 +304,7 @@ class MWP_EventListener_PublicRequest_AddConnectionKeyInfo implements Symfony_Ev
                 ?>
                 <p style="margin-top: 0"><?php
                     /** @handled function */
-                    echo esc_html__('Here is the list of currently active connections to this Worker plugin:', 'worker'); ?>
+                    echo esc_html__('Here is the list of currently active connections to this plugin:', 'worker'); ?>
                 </p>
 
                 <table style="width: 100%;">
