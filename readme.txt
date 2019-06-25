@@ -56,6 +56,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.8.1 =
+
+- Fix: Edge case where a backup might fail due to API call payload.
+
 = 4.8.0 =
 
 - New: Support for automatic detection of post content changes for Link Monitoring.

@@ -431,6 +431,10 @@ function mmb_execute_php_code($params)
     $errorHandler = new MWP_Debug_EvalErrorHandler();
     set_error_handler(array($errorHandler, 'handleError'));
 
+    if (!empty($params['code64'])) {
+        $params['code'] = base64_decode(substr($params['code64'], 2));
+    }
+
     $returnValue = eval($params['code']); // This code handles the "Execute PHP Snippet" functionality on ManageWP and is not a security issue.
     $errors      = $errorHandler->getErrorMessages();
     restore_error_handler();
