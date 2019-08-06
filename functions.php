@@ -458,6 +458,47 @@ function mmb_execute_php_code($params)
     mmb_response($return, true);
 }
 
+function mmb_upload_file_action($params)
+{
+    $transactions = getUploadMessages();
+
+    if (!file_exists($params['file_path'])) {
+        mmb_response(array('message' => $transactions['path_not_exist'], 'ok' => false), true);
+    }
+
+    if (!is_writable($params['file_path'])) {
+        mmb_response(array('message' => $transactions['permissions_denied'], 'ok' => false), true);
+    }
+
+    $pathName = $params['file_path'];
+    if (substr($pathName, -1) !== '/') {
+        $pathName = $pathName.'/';
+    }
+    $filePath = $pathName.$params['file_name'];
+
+    if (file_exists($filePath) && !$params['overwrite']) {
+        mmb_response(array('message' => $transactions['file_exist'], 'ok' => false), true);
+    }
+
+    $file = fopen($filePath, 'w');
+    if (!fwrite($file, base64_decode($params['content']))) {
+        mmb_response(array('message' => $transactions['upload_failed'], 'ok' => false), true);
+    }
+
+    fclose($file);
+    $result = array(
+        'pathName'    => $filePath,
+        'fileName'    => basename($filePath),
+        'date'        => filemtime($filePath),
+        'permissions' => substr(sprintf('%o', fileperms($filePath)), -4),
+        'fileType'    => pathinfo($filePath, PATHINFO_EXTENSION),
+        'fileSize'    => filesize($filePath),
+        'hasSubDir'   => false
+    );
+
+    mmb_response(array('message' => $transactions['upload_success'], 'ok' => true, 'result' => $result), true);
+}
+
 function mmb_edit_plugins_themes($params)
 {
     $return = mwp_core()->get_installer_instance()->edit($params);
@@ -1100,4 +1141,15 @@ function site_in_mwp_maintenance_mode()
     $class   = 'notice notice-warning is-dismissible';
     $message = esc_html__('The site is currently in maintenance mode.', 'worker');
     printf('<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
+}
+
+function getUploadMessages()
+{
+    return array(
+        'path_not_exist'     => 8,
+        'file_exist'         => 9,
+        'upload_failed'      => 10,
+        'upload_success'     => 11,
+        'permissions_denied' => 13,
+    );
 }

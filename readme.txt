@@ -56,6 +56,11 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.9.0 =
+
+- New: Support for a future release of file management.
+- We will stop supporting PHP 5.2 in the next version.
+
 = 4.8.1 =
 
 - Fix: Edge case where a backup might fail due to API call payload.
