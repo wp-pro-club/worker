@@ -56,6 +56,10 @@ https://vimeo.com/220647227
 
 == Changelog ==
 
+= 4.9.1 =
+
+- Fix: Handle updates on WP Engine hosted websites properly.
+
 = 4.9.0 =
 
 - New: Support for a future release of file management.

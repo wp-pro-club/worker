@@ -31,6 +31,11 @@ function mwp_context()
     return mwp_container()->getWordPressContext();
 }
 
+function mwp_worker_configuration()
+{
+    return mwp_container()->getConfiguration();
+}
+
 function mwp_format_memory_limit($limit)
 {
     if ((string)(int)$limit === (string)$limit) {
